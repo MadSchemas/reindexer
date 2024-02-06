@@ -4,6 +4,7 @@
 #include "core/namespace/namespaceimpl.h"
 #include "core/queryresults/joinresults.h"
 #include "estl/fast_hash_set.h"
+#include "estl/restricted.h"
 #include "joinedselector.h"
 #include "joinedselectormock.h"
 #include "tools/stringstools.h"
@@ -61,12 +62,17 @@ VariantArray SortExpression::GetJoinedFieldValues(IdType rowId, const joins::Nam
 												  int index) {
 	const auto& js = joinedSelectors[nsIdx];
 	const PayloadType& pt =
-		js.preResult_->dataMode == JoinPreResult::ModeValues ? js.preResult_->values.payloadType : js.rightNs_->payloadType_;
+		std::visit(overloaded{[](const JoinPreResult::Values& values) noexcept -> const PayloadType& { return values.payloadType; },
+							  Restricted<IdSet, SelectIteratorContainer>{}(
+								  [&js](const auto&) noexcept -> const PayloadType& { return js.rightNs_->payloadType_; })},
+				   js.preResult_->preselectedPayload);
 	const ConstPayload pv{pt, getJoinedValue(rowId, joinResults, joinedSelectors, nsIdx)};
 	VariantArray values;
 	if (index == IndexValueType::SetByJsonPath) {
-		TagsMatcher& tm =
-			js.preResult_->dataMode == JoinPreResult::ModeValues ? js.preResult_->values.tagsMatcher : js.rightNs_->tagsMatcher_;
+		TagsMatcher& tm = std::visit(overloaded{[](JoinPreResult::Values& values) noexcept -> TagsMatcher& { return values.tagsMatcher; },
+												Restricted<IdSet, SelectIteratorContainer>{}(
+													[&js](const auto&) noexcept -> TagsMatcher& { return js.rightNs_->tagsMatcher_; })},
+									 js.preResult_->preselectedPayload);
 		pv.GetByJsonPath(column, tm, values, KeyValueType::Undefined{});
 	} else {
 		pv.Get(index, values);
@@ -144,9 +150,15 @@ double DistanceBetweenJoinedIndexesSameNs::GetValue(IdType rowId, const joins::N
 													const std::vector<JoinedSelector>& joinedSelectors) const {
 	const auto& js = joinedSelectors[nsIdx];
 	const PayloadType& pt =
-		js.preResult_->dataMode == JoinPreResult::ModeValues ? js.preResult_->values.payloadType : js.rightNs_->payloadType_;
+		std::visit(overloaded{[](const JoinPreResult::Values& values) noexcept -> const PayloadType& { return values.payloadType; },
+							  Restricted<IdSet, SelectIteratorContainer>{}(
+								  [&js](const auto&) noexcept -> const PayloadType& { return js.rightNs_->payloadType_; })},
+				   js.preResult_->preselectedPayload);
 	const ConstPayload pv{pt, SortExpression::getJoinedValue(rowId, joinResults, joinedSelectors, nsIdx)};
-	TagsMatcher& tm = js.preResult_->dataMode == JoinPreResult::ModeValues ? js.preResult_->values.tagsMatcher : js.rightNs_->tagsMatcher_;
+	TagsMatcher& tm = std::visit(overloaded{[](JoinPreResult::Values& values) noexcept -> TagsMatcher& { return values.tagsMatcher; },
+											Restricted<IdSet, SelectIteratorContainer>{}(
+												[&js](const auto&) noexcept -> TagsMatcher& { return js.rightNs_->tagsMatcher_; })},
+								 js.preResult_->preselectedPayload);
 	VariantArray values1;
 	if (index1 == IndexValueType::SetByJsonPath) {
 		pv.GetByJsonPath(column1, tm, values1, KeyValueType::Undefined{});

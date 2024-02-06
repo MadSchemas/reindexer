@@ -321,6 +321,10 @@ public:
 	/// Insert value at the position
 	template <typename T>
 	void Insert(size_t pos, OperationType op, T&& v) {
+		if (pos == container_.size()) {
+			Append(op, std::forward<T>(v));
+			return;
+		}
 		assertrx_throw(pos < container_.size());
 		for (unsigned& b : activeBrackets_) {
 			assertrx_throw(b < container_.size());
@@ -330,6 +334,22 @@ public:
 			if (container_[i].IsSubTree() && Next(i) > pos) container_[i].Append();
 		}
 		container_.emplace(container_.begin() + pos, op, std::forward<T>(v));
+	}
+	template <typename T, typename... Args>
+	void Emplace(size_t pos, OperationType op, Args&&... args) {
+		if (pos == container_.size()) {
+			Append<T>(op, std::forward<Args>(args)...);
+			return;
+		}
+		assertrx_throw(pos < container_.size());
+		for (unsigned& b : activeBrackets_) {
+			assertrx_throw(b < container_.size());
+			if (b >= pos) ++b;
+		}
+		for (size_t i = 0; i < pos; ++i) {
+			if (container_[i].IsSubTree() && Next(i) > pos) container_[i].Append();
+		}
+		container_.emplace(container_.begin() + pos, op, T(std::forward<Args>(args)...));
 	}
 	/// Insert value after the position
 	template <typename T>

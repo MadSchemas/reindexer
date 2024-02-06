@@ -293,6 +293,8 @@ public:
 		storage_.Flush(flushOpts);
 		return storage_.GetStatusCached().err;
 	}
+	const auto &Indexes() const & noexcept { return indexes_; }
+	const auto &Indexes() const && = delete;
 
 private:
 	struct SysRecordsVersions {

@@ -39,6 +39,7 @@ public:
 
 	void SortByCost(int expectedIterations);
 	bool HasIdsets() const;
+	bool HasAlwaysFalse() const;
 	// Check NOT or comparator must not be 1st
 	void CheckFirstQuery();
 	// Let iterators choose most effecive algorith
@@ -65,7 +66,7 @@ public:
 		maxIterations_ = std::numeric_limits<int>::max();
 		wasZeroIterations_ = false;
 	}
-	int GetMaxIterations(bool withZero = false) { return (withZero && wasZeroIterations_) ? 0 : maxIterations_; }
+	int GetMaxIterations(bool withZero = false) const noexcept { return (withZero && wasZeroIterations_) ? 0 : maxIterations_; }
 	std::string Dump() const;
 	static bool IsExpectingOrderedResults(const QueryEntry &qe) noexcept {
 		return IsOrderedCondition(qe.Condition()) || (qe.Condition() != CondAny && qe.Values().size() <= 1);
@@ -94,6 +95,7 @@ private:
 	template <bool reverse>
 	static IdType getNextItemId(const_iterator begin, const_iterator end, IdType from);
 	static bool isIdset(const_iterator it, const_iterator end);
+	static bool isAlwaysFalse(const_iterator it, const_iterator end);
 	static bool markBracketsHavingJoins(iterator begin, iterator end) noexcept;
 	bool haveJoins(size_t i) const noexcept;
 

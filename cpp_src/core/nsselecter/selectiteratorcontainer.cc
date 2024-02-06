@@ -155,6 +155,18 @@ bool SelectIteratorContainer::isIdset(const_iterator it, const_iterator end) {
 		   (++it == end || it->operation != OpOr);
 }
 
+bool SelectIteratorContainer::isAlwaysFalse(const_iterator it, const_iterator end) {
+	return ((it->operation == OpAnd && it->Is<AlwaysFalse>()) || (it->operation == OpNot && it->Is<AlwaysTrue>())) &&
+		   (++it == end || it->operation != OpOr);
+}
+
+bool SelectIteratorContainer::HasAlwaysFalse() const {
+	for (const_iterator it = cbegin(), end = cend(); it != end; ++it) {
+		if (isAlwaysFalse(it, end)) return true;
+	}
+	return false;
+}
+
 bool SelectIteratorContainer::HasIdsets() const {
 	for (const_iterator it = cbegin(), end = cend(); it != end; ++it) {
 		if (isIdset(it, end)) return true;
@@ -248,7 +260,7 @@ SelectKeyResults SelectIteratorContainer::processQueryEntry(const QueryEntry &qe
 	isIndexSparse = index->Opts().IsSparse();
 
 	Index::SelectOpts opts;
-	opts.itemsCountInNamespace = ns.items_.size() - ns.free_.size();
+	opts.itemsCountInNamespace = ns.ItemsCount();
 	if (!ns.SortOrdersBuilt()) opts.disableIdSetCache = 1;
 	if (isQueryFt) {
 		opts.forceComparator = 1;
@@ -337,10 +349,13 @@ void SelectIteratorContainer::processQueryEntryResults(SelectKeyResults &selectR
 					lastAppended.Bind(ns.payloadType_, qe.IndexNo());
 					lastAppended.SetNotOperationFlag(op == OpNot);
 					const auto maxIterations = lastAppended.GetMaxIterations();
-					const int cur = op == OpNot ? ns.items_.size() - maxIterations : maxIterations;
+					const int cur = op == OpNot ? ns.ItemsCount() - maxIterations : maxIterations;
 					if (lastAppended.comparators_.empty() && (!nextOp.has_value() || nextOp.value() != OpOr)) {
-						if (cur && cur < maxIterations_) maxIterations_ = cur;
-						if (!cur) wasZeroIterations_ = true;
+						if (cur) {
+							if (cur < maxIterations_) maxIterations_ = cur;
+						} else {
+							wasZeroIterations_ = true;
+						}
 					}
 				}
 				break;

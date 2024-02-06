@@ -101,22 +101,19 @@ static std::string addToJSON(JsonBuilder &builder, const JoinedSelector &js, OpT
 		case JoinType::OrInnerJoin:
 		case JoinType::LeftJoin:
 			assertrx(js.PreResult());
-			switch (js.PreResult()->dataMode) {
-				case JoinPreResult::ModeValues:
-					jsonSel.Put("method"sv, "preselected_values"sv);
-					jsonSel.Put("keys"sv, js.PreResult()->values.size());
-					break;
-				case JoinPreResult::ModeIdSet:
-					jsonSel.Put("method"sv, "preselected_rows"sv);
-					jsonSel.Put("keys"sv, js.PreResult()->ids.size());
-					break;
-				case JoinPreResult::ModeIterators:
-					jsonSel.Put("method"sv, "no_preselect"sv);
-					jsonSel.Put("keys"sv, js.PreResult()->iterators.Size());
-					break;
-				default:
-					break;
-			}
+			std::visit(overloaded{[&](const JoinPreResult::Values &values) {
+									  jsonSel.Put("method"sv, "preselected_values"sv);
+									  jsonSel.Put("keys"sv, values.size());
+								  },
+								  [&](const IdSet &ids) {
+									  jsonSel.Put("method"sv, "preselected_rows"sv);
+									  jsonSel.Put("keys"sv, ids.size());
+								  },
+								  [&](const SelectIteratorContainer &iterators) {
+									  jsonSel.Put("method"sv, "no_preselect"sv);
+									  jsonSel.Put("keys"sv, iterators.Size());
+								  }},
+					   js.PreResult()->preselectedPayload);
 			if (!js.PreResult()->explainPreSelect.empty()) {
 				jsonSel.Raw("explain_preselect"sv, js.PreResult()->explainPreSelect);
 			}

@@ -103,6 +103,8 @@ private:
 	void Query2CondInnerJoin(State& state);
 	void Query2CondInnerJoinTotal(State& state);
 	void Query2CondInnerJoinCachedTotal(State& state);
+	void InnerJoinInjectConditionFromMain(benchmark::State&);
+	void InnerJoinRejectInjection(benchmark::State&);
 
 	void Query3Cond(State& state);
 	void Query3CondTotal(State& state);

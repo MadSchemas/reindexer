@@ -95,6 +95,8 @@ void ApiTvSimple::RegisterAllCases() {
 	Register("Query0CondInnerJoinPreResultStoreValues", &ApiTvSimple::Query0CondInnerJoinPreResultStoreValues, this)
 		->Iterations(k0CondJoinIters);
 	Register("Query2CondInnerJoin", &ApiTvSimple::Query2CondInnerJoin, this);
+	Register("InnerJoinInjectConditionFromMain", &ApiTvSimple::InnerJoinInjectConditionFromMain, this);
+	Register("InnerJoinRejectInjection", &ApiTvSimple::InnerJoinRejectInjection, this);
 	Register("Query2CondInnerJoinTotal", &ApiTvSimple::Query2CondInnerJoinTotal, this);
 	Register("Query2CondInnerJoinCachedTotal", &ApiTvSimple::Query2CondInnerJoinCachedTotal, this);
 	Register("Query3Cond", &ApiTvSimple::Query3Cond, this);
@@ -882,6 +884,35 @@ void ApiTvSimple::Query2CondInnerJoin(benchmark::State& state) {
 			.Where("genre", CondEq, 5)
 			.Where("year", CondRange, {2010, 2016})
 			.InnerJoin("price_id", "id", CondSet, std::move(q4join));
+
+		QueryResults qres;
+		auto err = db_->Select(q, qres);
+		if (!err.ok()) state.SkipWithError(err.what().c_str());
+	}
+}
+
+void ApiTvSimple::InnerJoinInjectConditionFromMain(benchmark::State& state) {
+	AllocsTracker allocsTracker(state);
+	for (auto _ : state) {	// NOLINT(*deadcode.DeadStores)
+		Query q4join("JoinItems");
+		Query q(nsdef_.name);
+
+		q.Where("price_id", CondSet, priceIDs_.at(random<size_t>(0, priceIDs_.size() - 1)))
+			.InnerJoin("price_id", "id", CondSet, std::move(q4join));
+
+		QueryResults qres;
+		auto err = db_->Select(q, qres);
+		if (!err.ok()) state.SkipWithError(err.what().c_str());
+	}
+}
+
+void ApiTvSimple::InnerJoinRejectInjection(benchmark::State& state) {
+	AllocsTracker allocsTracker(state);
+	for (auto _ : state) {	// NOLINT(*deadcode.DeadStores)
+		Query q4join("JoinItems");
+		Query q(nsdef_.name);
+
+		q.Where("id", CondEq, {-100}).InnerJoin("price_id", "id", CondSet, std::move(q4join));
 
 		QueryResults qres;
 		auto err = db_->Select(q, qres);
