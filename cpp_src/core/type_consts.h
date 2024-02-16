@@ -142,6 +142,7 @@ enum ErrorCode {
 	errSystem = 37,
 	errAssert = 38,
 	errParseYAML = 39,
+	errNamespaceOverwritten = 40
 };
 
 enum SchemaType { JsonSchemaType, ProtobufSchemaType };

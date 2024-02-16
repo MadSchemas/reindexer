@@ -4,6 +4,9 @@
 #include <string>
 #include "core/type_consts.h"
 
+#include <iostream>
+#include "tools/assertrx.h"
+
 namespace reindexer {
 namespace cluster {
 
@@ -44,10 +47,19 @@ public:
 	template <typename F>
 	void Log(LogLevel l, F&& f) const {
 		if (l <= GetLevel()) {
+			try {
 			std::string str = f();
 			if (!str.empty()) {
 				const auto outLevel = minOutputLogLevel_ < l ? minOutputLogLevel_ : l;
 				print(outLevel, str);
+			}
+			} catch (std::exception& e) {
+				std::cout << "!!!!!" << e.what() << std::endl;
+				assertrx(false);
+			}
+			catch (...) {
+				std::cout << "!!!!!<unknown error>" << std::endl;
+				assertrx(false);
 			}
 		}
 	}

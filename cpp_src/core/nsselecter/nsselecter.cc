@@ -28,7 +28,7 @@ void NsSelecter::operator()(LocalQueryResults &result, SelectCtx &ctx, const Rdx
 	auto &explain = ctx.explain;
 	explain = ExplainCalc(ctx.query.GetExplain() || logLevel >= LogInfo);
 	explain.SetSubQueriesExplains(std::move(ctx.subQueriesExplains));
-	ActiveQueryScope queryScope(ctx, ns_->optimizationState_, explain, ns_->locker_.IsReadOnly(), ns_->strHolder_.get());
+	ActiveQueryScope queryScope(ctx, ns_->optimizationState_, explain, ns_->locker_.InvalidationType(), ns_->strHolder_.get());
 
 	explain.SetPreselectTime(ctx.preResultTimeTotal);
 	explain.StartTiming();
