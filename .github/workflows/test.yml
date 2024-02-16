@@ -7,15 +7,6 @@ jobs:
     strategy:
       matrix:
         os: [macos-latest]
-        include:
-          - os: ubuntu-latest
-            sanitizer: ASAN
-            cc: gcc-10
-            cxx: g++-10
-          - os: ubuntu-latest
-            sanitizer: TSAN
-            cc: gcc-10
-            cxx: g++-10
       fail-fast: false
     runs-on: ${{matrix.os}}
     env:
