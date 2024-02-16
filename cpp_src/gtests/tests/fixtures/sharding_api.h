@@ -42,7 +42,7 @@ struct InitShardingConfig {
 class ShardingApi : public ReindexerApi {
 public:
 	using ShardingConfig = reindexer::cluster::ShardingConfig;
-	static const std::string_view kConfigTemplate;
+	static const std::string configTemplate;
 	enum class ApplyType : bool { Shared, Local };
 
 	void Init(InitShardingConfig c = InitShardingConfig()) {
@@ -62,7 +62,7 @@ public:
 		config_.namespaces.resize(namespaces.size());
 		for (size_t i = 0; i < namespaces.size(); ++i) {
 			config_.namespaces[i].ns = namespaces[i].name;
-			config_.namespaces[i].index = namespaces[i].indexName;
+			config_.namespaces[i].index = namespaces[i].indexName;	// kFieldLocation;
 			config_.namespaces[i].defaultShard = 0;
 		}
 		config_.shards.clear();
@@ -88,6 +88,7 @@ public:
 
 		for (size_t shard = 0; shard < kShards; ++shard) {
 			YAML::Node clusterConf;
+			clusterConf["app_name"] = "rx_node";
 			clusterConf["namespaces"] = YAML::Node(YAML::NodeType::Sequence);
 			clusterConf["sync_threads"] = syncThreadsCount;
 			clusterConf["enable_compression"] = true;
@@ -120,7 +121,6 @@ public:
 				YAML::Node replConf;
 				replConf["cluster_id"] = shard;
 				replConf["server_id"] = idx;
-				clusterConf["app_name"] = fmt::sprintf("rx_node_%d", idx);
 
 				std::string pathToDb =
 					fs::JoinPath(GetDefaults().baseTestsetDbPath, "shard" + std::to_string(shard) + "/" + std::to_string(idx));

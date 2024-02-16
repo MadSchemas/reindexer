@@ -74,6 +74,7 @@ ReindexerImpl::ReindexerImpl(ReindexerConfig cfg, ActivityContainer& activities,
 	  nsLock_(*clusterizator_, *this),
 	  activities_(activities),
 	  storageType_(StorageType::LevelDB),
+	  connected_(false),
 	  config_(std::move(cfg)),
 	  proxyCallbacks_(std::move(proxyCallbacks)) {
 	configProvider_.setHandler(ProfilingConf, std::bind(&ReindexerImpl::onProfiligConfigLoad, this));
@@ -359,7 +360,9 @@ Error ReindexerImpl::Connect(const std::string& dsn, ConnectOpts opts) {
 		}
 	}
 
-	connected_.store(err.ok(), std::memory_order_release);
+	if (err.ok()) {
+		connected_.store(true, std::memory_order_release);
+	}
 	return err;
 }
 
@@ -2110,6 +2113,13 @@ Error ReindexerImpl::ApplySnapshotChunk(std::string_view nsName, const SnapshotC
 bool ReindexerImpl::isSystemNamespaceNameStrict(std::string_view name) noexcept {
 	return std::find_if(kSystemNsDefs.begin(), kSystemNsDefs.end(),
 						[name](const NamespaceDef& nsDef) { return iequals(nsDef.name, name); }) != kSystemNsDefs.end();
+}
+
+Error ReindexerImpl::Status() {
+	if (connected_.load(std::memory_order_acquire)) {
+		return errOK;
+	}
+	return Error(errNotValid, "DB is not connected"sv);
 }
 
 Error ReindexerImpl::SuggestLeader(const cluster::NodeData& suggestion, cluster::NodeData& response) {

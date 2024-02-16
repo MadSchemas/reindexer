@@ -894,7 +894,6 @@ ShardingApi::ShardingConfig ShardingApi::makeShardingConfigByDistrib(std::string
 	cfg.proxyConnCount = 3;
 	cfg.proxyConnThreads = 2;
 	cfg.proxyConnConcurrency = 4;
-	cfg.configRollbackTimeout = std::chrono::seconds(10);
 	return cfg;
 }
 
@@ -1850,13 +1849,6 @@ TEST_F(ShardingApi, CheckQueryWithSharding) {
 	}
 	{
 		client::QueryResults qr;
-		Query q = Query(default_namespace).Where(kFieldLocation, CondGt, "key1");
-		Error err = rx->Select(q, qr);
-		ASSERT_FALSE(err.ok());
-		EXPECT_EQ(err.what(), "Shard key condition can only be 'Eq'");
-	}
-	{
-		client::QueryResults qr;
 		Query q = Query(default_namespace).WhereBetweenFields(kFieldLocation, CondEq, kFieldData);
 		Error err = rx->Select(q, qr);
 		ASSERT_FALSE(err.ok());
@@ -1918,15 +1910,6 @@ TEST_F(ShardingApi, CheckQueryWithSharding) {
 		Error err = rx->Select(q, qr);
 		ASSERT_FALSE(err.ok());
 		EXPECT_EQ(err.what(), "Shard key condition cannot be negative");
-	}
-	{
-		client::QueryResults qr;
-		Query q = Query(default_namespace)
-					  .Where(kFieldLocation, CondEq, "key1")
-					  .InnerJoin(kFieldId, kFieldId, CondEq, Query{default_namespace}.Not().Where(kFieldLocation, CondLike, "key1"));
-		Error err = rx->Select(q, qr);
-		ASSERT_FALSE(err.ok());
-		EXPECT_EQ(err.what(), "Shard key condition can only be 'Eq'");
 	}
 	// MERGE
 	{
@@ -2103,16 +2086,6 @@ TEST_F(ShardingApi, CheckQueryWithSharding) {
 	}
 	{
 		client::QueryResults qr;
-		Query q =
-			Query(default_namespace)
-				.Where(kFieldLocation, CondEq, "key1")
-				.Where(kFieldId, CondEq, Query{default_namespace}.Select({kFieldId}).Not().Where(kFieldLocation, CondAny, VariantArray{}));
-		Error err = rx->Select(q, qr);
-		ASSERT_FALSE(err.ok());
-		EXPECT_EQ(err.what(), "Sharding key value cannot be empty or an array");
-	}
-	{
-		client::QueryResults qr;
 		Query q = Query(default_namespace)
 					  .Where(kFieldLocation, CondEq, "key1")
 					  .Where(Query{default_namespace}.Not().Where(kFieldLocation, CondEq, "key1"), CondAny, VariantArray{});
@@ -2176,7 +2149,7 @@ TEST_F(ShardingApi, EnumLocalNamespaces) {
 	}
 }
 
-const std::string_view ShardingApi::kConfigTemplate = R"(version: 1
+const std::string ShardingApi::configTemplate = R"(version: 1
 namespaces:
   - namespace: namespace1
     default_shard: 0
@@ -2207,7 +2180,6 @@ shards:
 this_shard_id: 0
 reconnect_timeout_msec: 3000
 shards_awaiting_timeout_sec: 30
-config_rollback_timeout_sec: 30
 proxy_conn_count: 8
 proxy_conn_concurrency: 8
 proxy_conn_threads: 4
@@ -2234,7 +2206,7 @@ TEST_F(ShardingApi, ConfigYaml) {
 	};
 
 	auto substRangesInTemplate = [](const std::vector<std::string> &values) {
-		std::string res(kConfigTemplate);
+		auto res = configTemplate;
 		for (size_t i = 0; i < 3; ++i) {
 			auto tmplt = fmt::sprintf("${%d}", i);
 			res.replace(res.find(tmplt), tmplt.size(), values[i]);
@@ -2404,7 +2376,6 @@ shards:
 this_shard_id: 0
 reconnect_timeout_msec: 5000
 shards_awaiting_timeout_sec: 25
-config_rollback_timeout_sec: 30
 proxy_conn_count: 15
 )"s,
 		 Error{errParams, "Default shard id is not specified for namespace 'best_namespace'"}},
@@ -2428,7 +2399,6 @@ shards:
 this_shard_id: 0
 reconnect_timeout_msec: 5000
 shards_awaiting_timeout_sec: 25
-config_rollback_timeout_sec: 30
 proxy_conn_count: 15
 )"s,
 		 Error{errParams, "Dsns for shard id 1 are specified twice"}},
@@ -2449,7 +2419,6 @@ shards:
 this_shard_id: 0
 reconnect_timeout_msec: 5000
 shards_awaiting_timeout_sec: 25
-config_rollback_timeout_sec: 30
 proxy_conn_count: 15
 )"s,
 		 Error{errParams, "Scheme of sharding dsn must be cproto: 127.0.0.1:19001/shard1"}},
@@ -2473,7 +2442,6 @@ shards:
 this_shard_id: 0
 reconnect_timeout_msec: 5000
 shards_awaiting_timeout_sec: 25
-config_rollback_timeout_sec: 30
 proxy_conn_count: 15
 )"s,
 		 Error{errParams,
@@ -2498,7 +2466,6 @@ shards:
 this_shard_id: 0
 reconnect_timeout_msec: 5000
 shards_awaiting_timeout_sec: 25
-config_rollback_timeout_sec: 30
 proxy_conn_count: 15
 )"s,
 		 Error{errParams, "Shard id 3 is not specified in the config but it is used in namespace keys"}},
@@ -2522,7 +2489,6 @@ shards:
 this_shard_id: 0
 reconnect_timeout_msec: 5000
 shards_awaiting_timeout_sec: 25
-config_rollback_timeout_sec: 30
 proxy_conn_count: 15
 )"s,
 		 Error{errParams, "Shard id should not be less than zero"}},
@@ -2556,7 +2522,6 @@ shards:
 this_shard_id: 0
 reconnect_timeout_msec: 5000
 shards_awaiting_timeout_sec: 25
-config_rollback_timeout_sec: 30
 proxy_conn_count: 15
 )"s,
 		 Error{errParams, "Namespace 'best_namespacE' already specified in the config."}
@@ -2608,7 +2573,6 @@ shards:
 this_shard_id: 0
 reconnect_timeout_msec: 5000
 shards_awaiting_timeout_sec: 25
-config_rollback_timeout_sec: 17
 proxy_conn_count: 15
 proxy_conn_concurrency: 10
 proxy_conn_threads: 5
@@ -2622,7 +2586,6 @@ proxy_conn_threads: 5
 			 0,
 			 std::chrono::milliseconds(5000),
 			 std::chrono::seconds(25),
-			 std::chrono::seconds(17),
 			 15,
 			 10,
 			 5}},
@@ -2672,7 +2635,6 @@ shards:
 this_shard_id: 0
 reconnect_timeout_msec: 3000
 shards_awaiting_timeout_sec: 30
-config_rollback_timeout_sec: 30
 proxy_conn_count: 8
 proxy_conn_concurrency: 8
 proxy_conn_threads: 4
@@ -2749,7 +2711,7 @@ TEST_F(ShardingApi, ConfigJson) {
 		Cfg expected;
 		std::optional<std::string> json4compare = std::nullopt;
 	} testCases[]{
-		{R"({"version":1,"namespaces":[{"namespace":"best_namespace","default_shard":0,"index":"location","keys":[{"shard_id":1,"values":["south","west"]},{"shard_id":2,"values":["north"]}]}],"shards":[{"shard_id":0,"dsns":["cproto://127.0.0.1:19000/shard0"]},{"shard_id":1,"dsns":["cproto://127.0.0.1:19001/shard1"]},{"shard_id":2,"dsns":["cproto://127.0.0.2:19002/shard2"]}],"this_shard_id":0,"reconnect_timeout_msec":5000,"shards_awaiting_timeout_sec":20,"config_rollback_timeout_sec":33,"proxy_conn_count":4,"proxy_conn_concurrency":8,"proxy_conn_threads":4})"s,
+		{R"({"version":1,"namespaces":[{"namespace":"best_namespace","default_shard":0,"index":"location","keys":[{"shard_id":1,"values":["south","west"]},{"shard_id":2,"values":["north"]}]}],"shards":[{"shard_id":0,"dsns":["cproto://127.0.0.1:19000/shard0"]},{"shard_id":1,"dsns":["cproto://127.0.0.1:19001/shard1"]},{"shard_id":2,"dsns":["cproto://127.0.0.2:19002/shard2"]}],"this_shard_id":0,"reconnect_timeout_msec":5000,"shards_awaiting_timeout_sec":20,"proxy_conn_count":4,"proxy_conn_concurrency":8,"proxy_conn_threads":4})"s,
 		 Cfg{{{"best_namespace",
 			   "location",
 			   {Cfg::Key{1, ByValue, {sharding::Segment(Variant("south")), sharding::Segment(Variant("west"))}},
@@ -2759,9 +2721,8 @@ TEST_F(ShardingApi, ConfigJson) {
 			 0,
 			 std::chrono::milliseconds(5000),
 			 std::chrono::seconds(20),
-			 std::chrono::seconds(33),
 			 4}},
-		{R"({"version":1,"namespaces":[{"namespace":"namespace1","default_shard":0,"index":"count","keys":[{"shard_id":1,"values":[0,10,20]},{"shard_id":2,"values":[1,5,7,9]},{"shard_id":3,"values":[100]}]},{"namespace":"namespace2","default_shard":3,"index":"city","keys":[{"shard_id":1,"values":["Moscow"]},{"shard_id":2,"values":["London"]},{"shard_id":3,"values":["Paris"]}]}],"shards":[{"shard_id":0,"dsns":["cproto://127.0.0.1:19000/shard0","cproto://127.0.0.1:19001/shard0","cproto://127.0.0.1:19002/shard0"]},{"shard_id":1,"dsns":["cproto://127.0.0.1:19010/shard1","cproto://127.0.0.1:19011/shard1"]},{"shard_id":2,"dsns":["cproto://127.0.0.2:19020/shard2"]},{"shard_id":3,"dsns":["cproto://127.0.0.2:19030/shard3","cproto://127.0.0.2:19031/shard3","cproto://127.0.0.2:19032/shard3","cproto://127.0.0.2:19033/shard3"]}],"this_shard_id":0,"reconnect_timeout_msec":4000,"shards_awaiting_timeout_sec":30,"config_rollback_timeout_sec":30,"proxy_conn_count":3,"proxy_conn_concurrency":5,"proxy_conn_threads":2})"s,
+		{R"({"version":1,"namespaces":[{"namespace":"namespace1","default_shard":0,"index":"count","keys":[{"shard_id":1,"values":[0,10,20]},{"shard_id":2,"values":[1,5,7,9]},{"shard_id":3,"values":[100]}]},{"namespace":"namespace2","default_shard":3,"index":"city","keys":[{"shard_id":1,"values":["Moscow"]},{"shard_id":2,"values":["London"]},{"shard_id":3,"values":["Paris"]}]}],"shards":[{"shard_id":0,"dsns":["cproto://127.0.0.1:19000/shard0","cproto://127.0.0.1:19001/shard0","cproto://127.0.0.1:19002/shard0"]},{"shard_id":1,"dsns":["cproto://127.0.0.1:19010/shard1","cproto://127.0.0.1:19011/shard1"]},{"shard_id":2,"dsns":["cproto://127.0.0.2:19020/shard2"]},{"shard_id":3,"dsns":["cproto://127.0.0.2:19030/shard3","cproto://127.0.0.2:19031/shard3","cproto://127.0.0.2:19032/shard3","cproto://127.0.0.2:19033/shard3"]}],"this_shard_id":0,"reconnect_timeout_msec":4000,"shards_awaiting_timeout_sec":30,"proxy_conn_count":3,"proxy_conn_concurrency":5,"proxy_conn_threads":2})"s,
 		 Cfg{{{"namespace1",
 			   "count",
 			   {Cfg::Key{1, ByValue, {sharding::Segment(Variant(0)), sharding::Segment(Variant(10)), sharding::Segment(Variant(20))}},
@@ -2786,11 +2747,10 @@ TEST_F(ShardingApi, ConfigJson) {
 			 0,
 			 std::chrono::milliseconds(4000),
 			 std::chrono::seconds(30),
-			 std::chrono::seconds(30),
 			 3,
 			 5,
 			 2}},
-		{R"({"version":1,"namespaces":[{"namespace":"namespace1","default_shard":0,"index":"count","keys":[{"shard_id":1,"values":[1,2,3,4,{"range":[3,5]},{"range":[10,15]}]},{"shard_id":2,"values":[16,{"range":[36,40]},{"range":[40,65]},{"range":[100,150]}]},{"shard_id":3,"values":[93,25,33,{"range":[24,35]},{"range":[88,95]}]}]}],"shards":[{"shard_id":0,"dsns":["cproto://127.0.0.1:19000/shard0"]},{"shard_id":1,"dsns":["cproto://127.0.0.1:19010/shard1"]},{"shard_id":2,"dsns":["cproto://127.0.0.1:19020/shard2"]},{"shard_id":3,"dsns":["cproto://127.0.0.1:19030/shard3"]}],"this_shard_id":0,"reconnect_timeout_msec":4000,"shards_awaiting_timeout_sec":30,"config_rollback_timeout_sec":30,"proxy_conn_count":3,"proxy_conn_concurrency":5,"proxy_conn_threads":2})",
+		{R"({"version":1,"namespaces":[{"namespace":"namespace1","default_shard":0,"index":"count","keys":[{"shard_id":1,"values":[1,2,3,4,{"range":[3,5]},{"range":[10,15]}]},{"shard_id":2,"values":[16,{"range":[36,40]},{"range":[40,65]},{"range":[100,150]}]},{"shard_id":3,"values":[93,25,33,{"range":[24,35]},{"range":[88,95]}]}]}],"shards":[{"shard_id":0,"dsns":["cproto://127.0.0.1:19000/shard0"]},{"shard_id":1,"dsns":["cproto://127.0.0.1:19010/shard1"]},{"shard_id":2,"dsns":["cproto://127.0.0.1:19020/shard2"]},{"shard_id":3,"dsns":["cproto://127.0.0.1:19030/shard3"]}],"this_shard_id":0,"reconnect_timeout_msec":4000,"shards_awaiting_timeout_sec":30,"proxy_conn_count":3,"proxy_conn_concurrency":5,"proxy_conn_threads":2})",
 		 Cfg{{{"namespace1",
 			   "count",
 			   {Cfg::Key{1,
@@ -2811,11 +2771,10 @@ TEST_F(ShardingApi, ConfigJson) {
 			 0,
 			 std::chrono::milliseconds(4000),
 			 std::chrono::seconds(30),
-			 std::chrono::seconds(30),
 			 3,
 			 5,
 			 2},
-		 R"({"version":1,"namespaces":[{"namespace":"namespace1","default_shard":0,"index":"count","keys":[{"shard_id":1,"values":[1,2,{"range":[3,5]},{"range":[10,15]}]},{"shard_id":2,"values":[16,{"range":[36,65]},{"range":[100,150]}]},{"shard_id":3,"values":[{"range":[24,35]},{"range":[88,95]}]}]}],"shards":[{"shard_id":0,"dsns":["cproto://127.0.0.1:19000/shard0"]},{"shard_id":1,"dsns":["cproto://127.0.0.1:19010/shard1"]},{"shard_id":2,"dsns":["cproto://127.0.0.1:19020/shard2"]},{"shard_id":3,"dsns":["cproto://127.0.0.1:19030/shard3"]}],"this_shard_id":0,"reconnect_timeout_msec":4000,"shards_awaiting_timeout_sec":30,"config_rollback_timeout_sec":30,"proxy_conn_count":3,"proxy_conn_concurrency":5,"proxy_conn_threads":2})"}};
+		 R"({"version":1,"namespaces":[{"namespace":"namespace1","default_shard":0,"index":"count","keys":[{"shard_id":1,"values":[1,2,{"range":[3,5]},{"range":[10,15]}]},{"shard_id":2,"values":[16,{"range":[36,65]},{"range":[100,150]}]},{"shard_id":3,"values":[{"range":[24,35]},{"range":[88,95]}]}]}],"shards":[{"shard_id":0,"dsns":["cproto://127.0.0.1:19000/shard0"]},{"shard_id":1,"dsns":["cproto://127.0.0.1:19010/shard1"]},{"shard_id":2,"dsns":["cproto://127.0.0.1:19020/shard2"]},{"shard_id":3,"dsns":["cproto://127.0.0.1:19030/shard3"]}],"this_shard_id":0,"reconnect_timeout_msec":4000,"shards_awaiting_timeout_sec":30,"proxy_conn_count":3,"proxy_conn_concurrency":5,"proxy_conn_threads":2})"}};
 
 	for (const auto &[json, cfg, json4cmp] : testCases) {
 		const auto generatedJson = cfg.GetJSON();

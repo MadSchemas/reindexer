@@ -192,7 +192,7 @@ NamespaceImpl::~NamespaceImpl() {
 
 	auto flushStorage = [this]() {
 		try {
-			if (locker_.IsValid()) {
+			if (!locker_.IsReadOnly()) {
 				saveReplStateToStorage(false);
 				storage_.Flush(StorageFlushOpts().WithImmediateReopen());
 			}
@@ -1532,7 +1532,6 @@ ReplicationStateV2 NamespaceImpl::GetReplStateV2(const RdxContext& ctx) const {
 	auto rlck = rLock(ctx);
 	state.lastLsn = wal_.LastLSN();
 	state.dataHash = repl_.dataHash;
-	state.dataCount = ItemsCount();
 	state.nsVersion = repl_.nsVersion;
 	state.clusterStatus = repl_.clusterStatus;
 	return state;
@@ -1876,7 +1875,6 @@ void NamespaceImpl::doModifyItem(Item& item, ItemModifyMode mode, UpdatesContain
 
 	item.setLSN(lsn);
 	item.setID(id);
-
 	doUpsert(itemImpl, id, exists);
 
 	WrSerializer cjson;

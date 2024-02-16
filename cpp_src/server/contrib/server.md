@@ -80,6 +80,7 @@
   * [FulltextConfig](#fulltextconfig)
   * [FulltextFieldConfig](#fulltextfieldconfig)
   * [FulltextSynonym](#fulltextsynonym)
+  * [StopWordObject](#stopwordobject)
   * [GlobalReplicationStats](#globalreplicationstats)
   * [Index](#index)
   * [IndexCacheMemStats](#indexcachememstats)
@@ -136,7 +137,7 @@ Reindexer is compact, fast and it does not have heavy dependencies.
 
 
 ### Version information
-*Version* : 4.14.0
+*Version* : 4.13.0
 
 
 ### License information
@@ -2439,6 +2440,15 @@ Fulltext synonym definition
 |---|---|---|
 |**alternatives**  <br>*optional*|List of alternatives, which will be used for search documents|< string > array|
 |**tokens**  <br>*optional*|List source tokens in query, which will be replaced with alternatives|< string > array|
+
+
+
+### StopWordObject
+Stop word object definition
+|Name|Description|Schema|
+|---|---|---|
+|**word**  <br>*optional*|Stop word|string|
+|**is_morpheme**  <br>*optional*|If the value is true, the word can be included in search results in queries such as 'word*', 'word~' etc.|boolean|
 
 
 

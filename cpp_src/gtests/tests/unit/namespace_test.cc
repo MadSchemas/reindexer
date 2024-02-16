@@ -462,7 +462,7 @@ TEST_F(NsApi, TestUpdateSparseField) {
 	}
 }
 
-// Test of the currious case: https://github.com/restream/reindexer/-/issues/697
+// Test of the currious case: https://git.restream.ru/itv-backend/reindexer/-/issues/697
 // Updating entire object field and some indexed field at once.
 TEST_F(NsApi, TestUpdateTwoFields) {
 	// Set and fill Database
@@ -2173,7 +2173,7 @@ TEST_F(NsApi, TestUpdateEmptyArrayField) {
 }
 
 // Update 2 fields with one query in this order: object field, ordinary field of type String
-// https://github.com/restream/reindexer/-/tree/issue_777
+// https://git.restream.ru/itv-backend/reindexer/-/tree/issue_777
 TEST_F(NsApi, TestUpdateObjectFieldWithScalar) {
 	// Define namespace's schema and fill with data
 	DefineDefaultNamespace();
