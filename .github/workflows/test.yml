@@ -62,6 +62,7 @@ jobs:
         run: |
           ./.github/workflows/install_gtest.sh
           ./.github/workflows/install_gbench.sh
+          ./.github/workflows/install_gtest_parallel.sh
           if [[ $OS == ubuntu* ]]; then
             sudo ./dependencies.sh
             ./.github/workflows/install_grpc.sh
