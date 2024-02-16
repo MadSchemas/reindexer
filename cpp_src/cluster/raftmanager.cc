@@ -342,7 +342,7 @@ RaftManager::DesiredLeaderIdSender::DesiredLeaderIdSender(net::ev::dynamic_loop&
 	rpcCfg.AppName = "raft_manager_tmp";
 	rpcCfg.NetTimeout = kRaftTimeout;
 	rpcCfg.EnableCompression = false;
-	rpcCfg.RequestDedicatedThread = false;	// No dedicated threads required for the leader switch command
+	rpcCfg.RequestDedicatedThread = true;
 	clients_.reserve(nodes_.size());
 	for (size_t i = 0; i < nodes_.size(); ++i) {
 		auto& client = clients_.emplace_back(rpcCfg);
