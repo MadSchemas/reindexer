@@ -124,7 +124,11 @@ Error Clusterizator::Replicate(UpdatesContainer&& recs, std::function<void()> be
 
 	std::pair<Error, bool> res;
 	if (ctx.GetOriginLSN().isEmpty()) {
+		auto recsCnt = recs.size();
+		std::cout << fmt::sprintf("Clusterizator::'%s' pushing %d records into queue\n", recs[0].GetNsName(), recsCnt);
 		res = updatesQueue_.Push(std::move(recs), std::move(beforeWaitF), ctx);
+		std::cout << fmt::sprintf("Clusterizator::'%s' replicated %d records. Result: %s\n", recs[0].GetNsName(), recsCnt,
+								  res.first.ok() ? "OK" : res.first.what());
 	} else {
 		// Update can't be replicated to cluster from another node, so may only be replicated to async replicas
 		res = updatesQueue_.PushAsync(std::move(recs));

@@ -263,6 +263,7 @@ public:
 			const bool isFollowerNS = owner_.repl_.clusterStatus.role == ClusterizationStatus::Role::SimpleReplica ||
 									  owner_.repl_.clusterStatus.role == ClusterizationStatus::Role::ClusterReplica;
 			bool synchronized = isFollowerNS || !requireSync || clusterizator_.IsInitialSyncDone(owner_.name_);
+			bool awaitingSync = !synchronized;
 			while (!synchronized) {
 				// This is required in case of rename during sync wait
 				auto name = owner_.name_;
@@ -272,10 +273,15 @@ public:
 				lck.lock();
 				checkInvalidation();
 				synchronized = clusterizator_.IsInitialSyncDone(owner_.name_);
+				std::cout << fmt::sprintf("'%s' is %s syncronized!\n", owner_.name_, synchronized ? "" : "not");
 			}
 
 			if (!skipClusterStatusCheck) {
 				owner_.checkClusterStatus(ctx);	 // throw exception if false
+			}
+
+			if (awaitingSync) {
+				std::cout << fmt::sprintf("'%s' got lock after sync\n", owner_.name_);
 			}
 
 			return lck;
@@ -581,6 +587,7 @@ private:
 				   QueryStatsCalculatorT &&statCalculator, const NsContext &ctx) {
 		if (!repl_.temporary) {
 			assertrx(!ctx.isCopiedNsRequest);
+			std::cout << fmt::sprintf("Namespace::'%s' replicating %d records\n", name_, recs.size());
 			auto err = clusterizator_.Replicate(
 				std::move(recs),
 				[&wlck]() {

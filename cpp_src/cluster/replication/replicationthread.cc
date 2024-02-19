@@ -728,12 +728,14 @@ UpdateApplyStatus ReplThread<BehaviourParamT>::nodeUpdatesHandlingLoop(Node& nod
 				auto& it = upd.Data();
 				if (it.IsNetworkCheckRecord()) {
 					[[maybe_unused]] bool v;
+					logInfo("%d:%d Handling network check record with id %d", serverId_, node.uid, node.nextUpdateId);
 					std::tie(v, res) = handleNetworkCheckRecord(node, updatePtr, offset, true, it);
 					if (!res.err.ok()) {
 						break;
 					}
 					continue;
 				}
+				logInfo("%d:%d Handling %d record with id %d", serverId_, node.uid, int(it.type), node.nextUpdateId);
 				const std::string& nsName = it.GetNsName();
 				if constexpr (!isClusterReplThread()) {
 					if (!bhvParam_.IsNamespaceInConfig(node.uid, nsName)) {
