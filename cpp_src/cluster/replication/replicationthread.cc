@@ -715,7 +715,8 @@ UpdateApplyStatus ReplThread<BehaviourParamT>::nodeUpdatesHandlingLoop(Node& nod
 				statsCollector_.OnUpdateApplied(node.uid, updatePtr->ID());
 				return UpdateApplyStatus(Error(), UpdateRecord::Type::ResyncOnUpdatesDrop);
 			}
-			logTrace("%d:%d Got new update. Next update id: %d", serverId_, node.uid, node.nextUpdateId);
+			logTrace("%d:%d Got new update. Next update id: %d. Queue block id: %d, block count: %d", serverId_, node.uid,
+					 node.nextUpdateId, updatePtr->ID(), updatePtr->Count());
 			node.nextUpdateId = updatePtr->ID() > node.nextUpdateId ? updatePtr->ID() : node.nextUpdateId;
 			for (uint16_t offset = node.nextUpdateId - updatePtr->ID(); offset < updatePtr->Count(); ++offset) {
 				if (updatePtr->IsInvalidated()) {

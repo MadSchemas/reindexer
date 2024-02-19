@@ -8,6 +8,8 @@
 #include "estl/shared_mutex.h"
 #include "tools/stringstools.h"
 
+#include "vendor/spdlog/fmt/fmt.h"
+
 namespace reindexer {
 namespace cluster {
 
@@ -25,16 +27,28 @@ public:
 			auto res = synchronized_.emplace(std::move(name));
 			lck.unlock();
 			if (res.second) {
+				std::cout << fmt::sprintf("Marking '%s' as synchronized (with notification)\n", name);
 				cond_.notify_all();
+			} else {
+				std::cout << fmt::sprintf("Marking '%s' as synchronized (no notification)\n", name);
 			}
+		} else {
+			std::cout << fmt::sprintf("Attempt to mark '%s' as synchronized, but current role is %s\n", name,
+									  RaftInfo::RoleToStr(current_.role));
 		}
 	}
 	void MarkSynchronized() {
 		std::unique_lock<MtxT> lck(mtx_);
 		if (current_.role == RaftInfo::Role::Leader) {
 			++initialSyncDoneCnt_;
+
+			std::cout << fmt::sprintf("Marking 'whole DB' as synchronized (with notification); initialSyncDoneCnt_ = %d\n",
+									  initialSyncDoneCnt_);
 			lck.unlock();
 			cond_.notify_all();
+		} else {
+			std::cout << fmt::sprintf("Attempt to mark 'whole DB' as synchronized, but current role is %s\n",
+									  RaftInfo::RoleToStr(current_.role));
 		}
 	}
 	void Reset(ContainerT requireSynchronization, size_t ReplThreadsCnt, bool enabled) {
@@ -47,6 +61,7 @@ public:
 		ReplThreadsCnt_ = ReplThreadsCnt;
 		next_ = current_ = RaftInfo();
 		assert(ReplThreadsCnt_);
+		std::cout << fmt::sprintf("Reseting sync state\n");
 	}
 	template <typename ContextT>
 	void AwaitInitialSync(std::string_view name, const ContextT& ctx) const {
@@ -60,7 +75,9 @@ public:
 			if (next_.role == RaftInfo::Role::Follower) {
 				throw Error(errWrongReplicationData, "Node role was changed to follower");
 			}
+			std::cout << fmt::sprintf("Initial sync is not done for '%s', awaiting...\n", name);
 			cond_.wait(lck, ctx);
+			std::cout << fmt::sprintf("Initial sync is done for '%s'!\n", name);
 		}
 	}
 	template <typename ContextT>
@@ -73,7 +90,9 @@ public:
 			if (next_.role == RaftInfo::Role::Follower) {
 				throw Error(errWrongReplicationData, "Node role was changed to follower");
 			}
+			std::cout << fmt::sprintf("Initial sync is not done for 'whole DB', awaiting...\n");
 			cond_.wait(lck, ctx);
+			std::cout << fmt::sprintf("Initial sync is done for 'whole DB'!\n");
 		}
 	}
 	bool IsInitialSyncDone(std::string_view name) const {
@@ -90,10 +109,12 @@ public:
 		std::unique_lock<MtxT> lck(mtx_);
 		if (expected == next_) {
 			if (current_.role == RaftInfo::Role::Leader && current_.role != next_.role) {
+				std::cout << fmt::sprintf("Clearing synchronized list on role switch\n");
 				synchronized_.clear();
 				initialSyncDoneCnt_ = 0;
 			}
 			current_ = next_;
+			std::cout << fmt::sprintf("Role transition done, sending notification!\n");
 			lck.unlock();
 			cond_.notify_all();
 			return expected;
@@ -107,6 +128,7 @@ public:
 			cond_.wait(
 				lck, [this] { return !isRunning() || next_ == current_; }, ctx);
 		} else {
+			std::cout << fmt::sprintf("Awaiting role transition... Current role is %s\n", RaftInfo::RoleToStr(current_.role));
 			cond_.wait(
 				lck,
 				[this] {
@@ -114,6 +136,7 @@ public:
 						   (next_ == current_ && (current_.role == RaftInfo::Role::Leader || current_.role == RaftInfo::Role::Follower));
 				},
 				ctx);
+			std::cout << fmt::sprintf("Role transition done! Current role is %s\n", RaftInfo::RoleToStr(current_.role));
 		}
 		return current_;
 	}

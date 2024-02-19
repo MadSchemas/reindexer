@@ -25,6 +25,7 @@
 #include "tools/catch_and_return.h"
 #include "tools/errors.h"
 #include "tools/fsops.h"
+#include "tools/hardware_concurrency.h"
 #include "tools/logger.h"
 
 #include "debug/backtrace.h"
@@ -51,7 +52,7 @@ constexpr char kActionConfigType[] = "action";
 constexpr unsigned kStorageLoadingThreads = 6;
 
 static unsigned ConcurrentNamespaceLoaders() noexcept {
-	const auto hwConc = std::thread::hardware_concurrency();
+	const auto hwConc = hardware_concurrency();
 	if (hwConc <= 4) {
 		return 1;
 	} else if (hwConc < 8) {  // '<' is not a typo

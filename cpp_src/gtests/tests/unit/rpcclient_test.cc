@@ -13,6 +13,7 @@
 #include "gtests/tests/gtest_cout.h"
 #include "net/ev/ev.h"
 #include "reindexertestapi.h"
+#include "tools/hardware_concurrency.h"
 
 using std::chrono::seconds;
 
@@ -43,7 +44,7 @@ TEST_F(RPCClientTestApi, CoroRequestTimeout) {
 }
 
 static std::chrono::seconds GetMaxTimeForCoroSelectTimeout(unsigned requests, std::chrono::seconds delay) {
-	const auto cpus = std::thread::hardware_concurrency();
+	const auto cpus = reindexer::hardware_concurrency();
 	const auto kBase = std::max(requests * delay.count() / 16, delay.count());
 	const std::chrono::seconds kDefaultMaxTime(kBase + 10);
 	if (cpus == 0) {

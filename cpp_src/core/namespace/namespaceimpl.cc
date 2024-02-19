@@ -24,6 +24,7 @@
 #include "tools/errors.h"
 #include "tools/flagguard.h"
 #include "tools/fsops.h"
+#include "tools/hardware_concurrency.h"
 #include "tools/logger.h"
 #include "tools/timetools.h"
 #include "wal/walselecter.h"
@@ -181,7 +182,7 @@ NamespaceImpl::~NamespaceImpl() {
 		static constexpr double kDeleteNs = 0.25;
 
 		const double k = dbDestroyed_.load(std::memory_order_relaxed) ? kDeleteRxDestroy : kDeleteNs;
-		threadsCount = k * std::thread::hardware_concurrency();
+		threadsCount = k * hardware_concurrency();
 		if (threadsCount > indexes_.size() + 1) {
 			threadsCount = indexes_.size() + 1;
 		}
@@ -1982,7 +1983,7 @@ void NamespaceImpl::checkUniquePK(const ConstPayload& cpl, bool inTransaction, c
 }
 
 void NamespaceImpl::optimizeIndexes(const NsContext& ctx) {
-	static const auto kHardwareConcurrency = std::thread::hardware_concurrency();
+	static const auto kHardwareConcurrency = hardware_concurrency();
 	// This is read lock only atomics based implementation of rebuild indexes
 	// If optimizationState_ == OptimizationCompleted is true, then indexes are completely built.
 	// In this case reset optimizationState_ and/or any idset's and sort orders builds are allowed only protected by write lock
@@ -2022,9 +2023,7 @@ void NamespaceImpl::optimizeIndexes(const NsContext& ctx) {
 
 	// Update sort orders and sort_id for each index
 	size_t currentSortId = 1;
-	const size_t maxIndexWorkers = kHardwareConcurrency
-									   ? std::min<size_t>(std::thread::hardware_concurrency(), config_.optimizationSortWorkers)
-									   : config_.optimizationSortWorkers;
+	const size_t maxIndexWorkers = std::min<size_t>(kHardwareConcurrency, config_.optimizationSortWorkers);
 	for (auto& idxIt : indexes_) {
 		if (idxIt->IsOrdered() && maxIndexWorkers != 0) {
 			NSUpdateSortedContext sortCtx(*this, currentSortId++);
