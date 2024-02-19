@@ -43,13 +43,13 @@ public:
 	}
 	template <typename F>
 	void Log(LogLevel l, F&& f) const {
-		// if (l <= GetLevel()) {
-		std::string str = f();
-		if (!str.empty()) {
-			const auto outLevel = minOutputLogLevel_ < l ? minOutputLogLevel_ : l;
-			print(outLevel, str);
+		if (l <= GetLevel()) {
+			std::string str = f();
+			if (!str.empty()) {
+				const auto outLevel = minOutputLogLevel_ < l ? minOutputLogLevel_ : l;
+				print(outLevel, str);
+			}
 		}
-		//}
 	}
 
 private:

@@ -594,13 +594,13 @@ private:
 				   QueryStatsCalculatorT &&statCalculator, const NsContext &ctx) {
 		if (!repl_.temporary) {
 			assertrx(!ctx.isCopiedNsRequest);
-			const auto recsSize = recs.size();
-			const auto name = name_;
-			const auto invState = int(locker_.InvalidationType().load());
-			const auto sid = wal_.GetServer();
-			if (!isSystem()) {
-				std::cout << fmt::sprintf("Namespace::%d:'%s' replicating %d records. Inv state: %d\n", sid, name, recsSize, invState);
-			}
+			// const auto recsSize = recs.size();
+			// const auto name = name_;
+			// const auto invState = int(locker_.InvalidationType().load());
+			// const auto sid = wal_.GetServer();
+			// if (!isSystem()) {
+			// 	std::cout << fmt::sprintf("Namespace::%d:'%s' replicating %d records. Inv state: %d\n", sid, name, recsSize, invState);
+			// }
 			auto err = clusterizator_.Replicate(
 				std::move(recs),
 				[&wlck]() {
@@ -608,10 +608,10 @@ private:
 					wlck.unlock();
 				},
 				ctx.rdxContext);
-			if (!isSystem()) {
-				std::cout << fmt::sprintf("Namespace::%d:'%s' replication done for %d records. Inv state: %d\n", sid, name, recsSize,
-										  invState);
-			}
+			// if (!isSystem()) {
+			// 	std::cout << fmt::sprintf("Namespace::%d:'%s' replication done for %d records. Inv state: %d\n", sid, name, recsSize,
+			// 							  invState);
+			// }
 			if constexpr (std::is_same_v<QueryStatsCalculatorT, std::nullptr_t>) {
 				storage_.TryForceFlush();
 			} else {
