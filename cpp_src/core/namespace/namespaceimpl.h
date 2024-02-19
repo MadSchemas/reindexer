@@ -241,6 +241,10 @@ public:
 
 			NsWLock() = default;
 			NsWLock(MutexType &mtx, const RdxContext &ctx, bool isCL) : impl_(mtx, ctx), isClusterLck_(isCL) {}
+			NsWLock(const NsWLock &) = delete;
+			NsWLock(NsWLock &&) = default;
+			NsWLock &operator=(const NsWLock &) = delete;
+			NsWLock &operator=(NsWLock &&) = default;
 			void lock() { impl_.lock(); }
 			void unlock() { impl_.unlock(); }
 			bool owns_lock() const { return impl_.owns_lock(); }
@@ -273,7 +277,7 @@ public:
 				lck.lock();
 				checkInvalidation();
 				synchronized = clusterizator_.IsInitialSyncDone(owner_.name_);
-				std::cout << fmt::sprintf("'%s' is %s syncronized!\n", owner_.name_, synchronized ? "" : "not");
+				std::cout << fmt::sprintf("%d:'%s' is %s syncronized!\n", owner_.wal_.GetServer(), owner_.name_, synchronized ? "" : "not");
 			}
 
 			if (!skipClusterStatusCheck) {
@@ -281,7 +285,7 @@ public:
 			}
 
 			if (awaitingSync) {
-				std::cout << fmt::sprintf("'%s' got lock after sync\n", owner_.name_);
+				std::cout << fmt::sprintf("%d:'%s' got lock after sync\n", owner_.wal_.GetServer(), owner_.name_);
 			}
 
 			return lck;
@@ -590,8 +594,12 @@ private:
 				   QueryStatsCalculatorT &&statCalculator, const NsContext &ctx) {
 		if (!repl_.temporary) {
 			assertrx(!ctx.isCopiedNsRequest);
+			const auto recsSize = recs.size();
+			const auto name = name_;
+			const auto invState = int(locker_.InvalidationType().load());
+			const auto sid = wal_.GetServer();
 			if (!isSystem()) {
-				std::cout << fmt::sprintf("Namespace::'%s' replicating %d records\n", name_, recs.size());
+				std::cout << fmt::sprintf("Namespace::%d:'%s' replicating %d records. Inv state: %d\n", sid, name, recsSize, invState);
 			}
 			auto err = clusterizator_.Replicate(
 				std::move(recs),
@@ -600,6 +608,10 @@ private:
 					wlck.unlock();
 				},
 				ctx.rdxContext);
+			if (!isSystem()) {
+				std::cout << fmt::sprintf("Namespace::%d:'%s' replication done for %d records. Inv state: %d\n", sid, name, recsSize,
+										  invState);
+			}
 			if constexpr (std::is_same_v<QueryStatsCalculatorT, std::nullptr_t>) {
 				storage_.TryForceFlush();
 			} else {

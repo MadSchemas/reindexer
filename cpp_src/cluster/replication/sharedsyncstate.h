@@ -22,18 +22,19 @@ public:
 	using ContainerT = fast_hash_set<std::string, nocase_hash_str, nocase_equal_str, nocase_less_str>;
 
 	void MarkSynchronized(std::string name) {
+		const std::string n = std::move(name);
 		std::unique_lock<MtxT> lck(mtx_);
 		if (current_.role == RaftInfo::Role::Leader) {
-			auto res = synchronized_.emplace(std::move(name));
+			auto res = synchronized_.emplace(std::move(n));
 			lck.unlock();
 			if (res.second) {
-				std::cout << fmt::sprintf("Marking '%s' as synchronized (with notification)\n", name);
+				std::cout << fmt::sprintf("Marking '%s' as synchronized (with notification)\n", n);
 				cond_.notify_all();
 			} else {
-				std::cout << fmt::sprintf("Marking '%s' as synchronized (no notification)\n", name);
+				std::cout << fmt::sprintf("Marking '%s' as synchronized (no notification)\n", n);
 			}
 		} else {
-			std::cout << fmt::sprintf("Attempt to mark '%s' as synchronized, but current role is %s\n", name,
+			std::cout << fmt::sprintf("Attempt to mark '%s' as synchronized, but current role is %s\n", n,
 									  RaftInfo::RoleToStr(current_.role));
 		}
 	}
@@ -75,9 +76,24 @@ public:
 			if (next_.role == RaftInfo::Role::Follower) {
 				throw Error(errWrongReplicationData, "Node role was changed to follower");
 			}
-			std::cout << fmt::sprintf("Initial sync is not done for '%s', awaiting...\n", name);
-			cond_.wait(lck, ctx);
-			std::cout << fmt::sprintf("Initial sync is done for '%s'!\n", name);
+			std::cout << fmt::sprintf("Initial sync is not done for '%s', TID: %s, hash: %d; Awaiting...\n", name,
+									  std::this_thread::get_id(), hash);
+			try {
+				cond_.wait(
+					lck,
+					[this, &name, hash]() noexcept {
+						auto res = isInitialSyncDone(name, hash) || terminated_ || next_.role == RaftInfo::Role::Follower;
+						nocase_hash_str h;
+						std::cout << fmt::sprintf("AwaitInitialSync(%s / %d / %d) lambda call: %d, terminated_: %d, next_.role: %d\n", name,
+												  hash, h(name), int(res), int(terminated_), int(next_.role));
+						return res;
+					},
+					ctx);
+			} catch (...) {
+				std::cout << fmt::sprintf("!!!Exception in AwaitInitialSync(%s)\n", name);
+				throw;
+			}
+			std::cout << fmt::sprintf("Initial sync is done for '%s', TID: %s, hash: %d!\n", name, std::this_thread::get_id(), hash);
 		}
 	}
 	template <typename ContextT>
@@ -91,7 +107,20 @@ public:
 				throw Error(errWrongReplicationData, "Node role was changed to follower");
 			}
 			std::cout << fmt::sprintf("Initial sync is not done for 'whole DB', awaiting...\n");
-			cond_.wait(lck, ctx);
+			try {
+				cond_.wait(
+					lck,
+					[this]() noexcept {
+						auto res = isInitialSyncDone() || terminated_ || next_.role == RaftInfo::Role::Follower;
+						std::cout << fmt::sprintf("AwaitInitialSync() lambda call: %d, terminated_: %d, next_.role: %d\n", int(res),
+												  int(terminated_), int(next_.role));
+						return res;
+					},
+					ctx);
+			} catch (...) {
+				std::cout << "!!!Exception in AwaitInitialSync()\n";
+				throw;
+			}
 			std::cout << fmt::sprintf("Initial sync is done for 'whole DB'!\n");
 		}
 	}
@@ -125,17 +154,27 @@ public:
 	RaftInfo AwaitRole(bool allowTransitState, const ContextT& ctx) const {
 		shared_lock<MtxT> lck(mtx_);
 		if (allowTransitState) {
-			cond_.wait(
-				lck, [this] { return !isRunning() || next_ == current_; }, ctx);
+			try {
+				cond_.wait(
+					lck, [this] { return !isRunning() || next_ == current_; }, ctx);
+			} catch (...) {
+				std::cout << fmt::sprintf("!!!Exception in AwaitRole(allowTransitState=true)\n");
+				throw;
+			}
 		} else {
 			std::cout << fmt::sprintf("Awaiting role transition... Current role is %s\n", RaftInfo::RoleToStr(current_.role));
-			cond_.wait(
-				lck,
-				[this] {
-					return !isRunning() ||
-						   (next_ == current_ && (current_.role == RaftInfo::Role::Leader || current_.role == RaftInfo::Role::Follower));
-				},
-				ctx);
+			try {
+				cond_.wait(
+					lck,
+					[this] {
+						return !isRunning() || (next_ == current_ &&
+												(current_.role == RaftInfo::Role::Leader || current_.role == RaftInfo::Role::Follower));
+					},
+					ctx);
+			} catch (...) {
+				std::cout << fmt::sprintf("!!!Exception in AwaitRole(allowTransitState=false)\n");
+				throw;
+			}
 			std::cout << fmt::sprintf("Role transition done! Current role is %s\n", RaftInfo::RoleToStr(current_.role));
 		}
 		return current_;

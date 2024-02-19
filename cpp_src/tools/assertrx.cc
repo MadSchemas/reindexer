@@ -12,6 +12,7 @@ namespace reindexer {
 void fail_assertrx(const char *assertion, const char *file, unsigned line, const char *function) noexcept {
 	std::cerr << fmt::sprintf("Assertion failed: %s (%s:%u: %s)\n", assertion, file, line, function);
 	debug::print_crash_query(std::cerr);
+	debug::print_backtrace(std::cerr, nullptr, -1);
 	std::abort();
 }
 
@@ -19,6 +20,7 @@ void fail_throwrx(const char *assertion, const char *file, unsigned line, const 
 	std::string errText{fmt::sprintf("Assertion failed (handled via exception): %s (%s:%u: %s)\n", assertion, file, line, function)};
 	std::cerr << errText;
 	debug::print_crash_query(std::cerr);
+	debug::print_backtrace(std::cerr, nullptr, -1);
 	throw Error{errAssert, std::move(errText)};
 }
 

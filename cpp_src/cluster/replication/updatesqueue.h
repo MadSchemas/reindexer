@@ -294,9 +294,15 @@ public:
 				lck.lock();
 			}
 			static RdxContext dummyCtx_;
-			condResultReady_.wait(
-				lck, [&localData] { return localData.executedCnt == localData.dataSize; },
-				dummyCtx_);	 // Don't pass cancel context here, because data are already on the leader and we have to handle them
+			try {
+				condResultReady_.wait(
+					lck, [&localData] { return localData.executedCnt == localData.dataSize; },
+					dummyCtx_);	 // Don't pass cancel context here, because data are already on the leader and we have to handle them
+			} catch (...) {
+				std::cout << "!!!Exception in PushAndWait\n";
+				throw;
+			}
+
 			return std::make_pair(std::move(localData.err), true);
 		} catch (...) {
 			logInfoW([] { return "PushAndWait call has recieved an exception"; });
