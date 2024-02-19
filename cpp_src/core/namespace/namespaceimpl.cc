@@ -1478,6 +1478,10 @@ void NamespaceImpl::doTruncate(UpdatesContainer& pendedRepl, const NsContext& ct
 }
 
 void NamespaceImpl::ModifyItem(Item& item, ItemModifyMode mode, const RdxContext& ctx) {
+	auto name = GetName(ctx);
+	if (mode == ModeUpsert && !isSystemNamespaceNameFast(name)) {
+		std::cout << fmt::sprintf("NamespaceImpl::ModifyItem(...) into '%s' begin\n", name);
+	}
 	PerfStatCalculatorMT calc(updatePerfCounter_, enablePerfCounters_);
 	UpdatesContainer pendedRepl;
 
@@ -1491,6 +1495,9 @@ void NamespaceImpl::ModifyItem(Item& item, ItemModifyMode mode, const RdxContext
 	modifyItem(item, mode, pendedRepl, NsContext(ctx));
 
 	replicate(std::move(pendedRepl), std::move(wlck), true, nullptr, ctx);
+	if (mode == ModeUpsert && !isSystemNamespaceNameFast(name)) {
+		std::cout << fmt::sprintf("NamespaceImpl::ModifyItem(...) into '%s' begin\n", name);
+	}
 }
 
 void NamespaceImpl::Truncate(const RdxContext& ctx) {
@@ -1809,7 +1816,13 @@ void NamespaceImpl::modifyItem(Item& item, ItemModifyMode mode, UpdatesContainer
 	if (mode == ModeDelete) {
 		deleteItem(item, pendedRepl, ctx);
 	} else {
+		if (mode == ModeUpsert && !isSystemNamespaceNameFast(name_)) {
+			std::cout << fmt::sprintf("NamespaceImpl::modifyItem() into '%s' begin\n", name_);
+		}
 		doModifyItem(item, mode, pendedRepl, ctx);
+		if (mode == ModeUpsert && !isSystemNamespaceNameFast(name_)) {
+			std::cout << fmt::sprintf("NamespaceImpl::modifyItem() into '%s' done\n", name_);
+		}
 	}
 }
 

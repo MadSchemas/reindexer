@@ -587,7 +587,9 @@ private:
 				   QueryStatsCalculatorT &&statCalculator, const NsContext &ctx) {
 		if (!repl_.temporary) {
 			assertrx(!ctx.isCopiedNsRequest);
-			std::cout << fmt::sprintf("Namespace::'%s' replicating %d records\n", name_, recs.size());
+			if (!isSystem()) {
+				std::cout << fmt::sprintf("Namespace::'%s' replicating %d records\n", name_, recs.size());
+			}
 			auto err = clusterizator_.Replicate(
 				std::move(recs),
 				[&wlck]() {

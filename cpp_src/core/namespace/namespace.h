@@ -54,6 +54,10 @@ class Namespace {
 
 				CounterGuardAIR32 cg(ns->cancelCommitCnt_);
 				if constexpr (std::is_same_v<T, Item>) {
+					auto name = GetName(ctx);
+					if (enumVal == ModeUpsert && !isSystemNamespaceNameFast(name)) {
+						std::cout << fmt::sprintf("NamespaceImpl::ModifyItem(qr) into '%s' begin\n", name);
+					}
 					auto wlck = ns->dataWLock(nsCtx.rdxContext);
 					cg.Reset();
 					qr.AddNamespace(ns, true);
@@ -61,6 +65,9 @@ class Namespace {
 					(*ns.*fn)(v, enumVal, pendedRepl, nsCtx);
 					qr.AddItem(v, true, false);
 					ns->replicate(std::move(pendedRepl), std::move(wlck), true, nullptr, nsCtx);
+					if (enumVal == ModeUpsert && !isSystemNamespaceNameFast(name)) {
+						std::cout << fmt::sprintf("NamespaceImpl::ModifyItem(qr) into '%s' done\n", name);
+					}
 				} else {
 					auto params = longUpdDelLoggingParams_.load(std::memory_order_relaxed);
 					const bool isEnabled = params.thresholdUs >= 0 && !isSystemNamespaceNameFast(v.NsName());
@@ -127,9 +134,25 @@ public:
 	void Update(const Query &query, LocalQueryResults &result, const RdxContext &ctx) {
 		nsFuncWrapper<&NamespaceImpl::doUpdate, QueryType::QueryUpdate>(query, result, ctx);
 	}
-	void Upsert(Item &item, const RdxContext &ctx) { nsFuncWrapper<&NamespaceImpl::Upsert>(item, ctx); }
+	void Upsert(Item &item, const RdxContext &ctx) {
+		auto name = GetName(ctx);
+		if (!isSystemNamespaceNameFast(name)) {
+			std::cout << fmt::sprintf("Namespace::Upsert(...) into '%s' begin\n", name);
+		}
+		nsFuncWrapper<&NamespaceImpl::Upsert>(item, ctx);
+		if (!isSystemNamespaceNameFast(name)) {
+			std::cout << fmt::sprintf("Namespace::Upsert(...) into '%s' done\n", name);
+		}
+	}
 	void Upsert(Item &item, LocalQueryResults &qr, const RdxContext &ctx) {
+		auto name = GetName(ctx);
+		if (!isSystemNamespaceNameFast(name)) {
+			std::cout << fmt::sprintf("Namespace::Upsert(qr) into '%s' begin\n", name);
+		}
 		nsFuncWrapper<&NamespaceImpl::modifyItem, ItemModifyMode::ModeUpsert>(item, qr, ctx);
+		if (!isSystemNamespaceNameFast(name)) {
+			std::cout << fmt::sprintf("Namespace::Upsert(qr) into '%s' done\n", name);
+		}
 	}
 	void Delete(Item &item, const RdxContext &ctx) { nsFuncWrapper<&NamespaceImpl::Delete>(item, ctx); }
 	void Delete(Item &item, LocalQueryResults &qr, const RdxContext &ctx) {

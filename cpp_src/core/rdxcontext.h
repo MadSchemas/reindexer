@@ -40,6 +40,26 @@ void ThrowOnCancel(const Context& ctx, std::string_view errMsg = std::string_vie
 	throw Error(errCanceled, errMsg.empty() ? kDefaultCancelError : errMsg);
 }
 
+template <typename Context>
+void AssertOnCancel(const Context& ctx, std::string_view errMsg = std::string_view()) {
+	(void)errMsg;
+	if (!ctx.IsCancelable()) return;
+
+	const auto cancel = ctx.CheckCancel();
+	switch (cancel) {
+		case CancelType::Explicit:
+			assertrx(false);
+			std::abort();
+		case CancelType::Timeout:
+			assertrx(false);
+			std::abort();
+		case CancelType::None:
+			return;
+	}
+	assertrx(false);
+	std::abort();
+}
+
 class RdxDeadlineContext : public IRdxCancelContext {
 public:
 	using ClockT = std::chrono::steady_clock;

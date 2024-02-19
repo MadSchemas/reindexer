@@ -278,12 +278,12 @@ public:
 			logTraceW([&] { rtfmt("Push new sync updates (%d) for %s", localData.dataSize, data[0].GetNsName()); });
 
 			std::cout << fmt::sprintf("[cluster:queue] Duplicated: Pushing new sync updates (%d) for %s. Last ID: %d\n", localData.dataSize,
-									  nsName, queue_.size() ? queue_.back()->ID() : 0);
+									  nsName, queue_.size() ? (queue_.back()->ID() + queue_.back()->Count()) : -1);
 
 			entriesRange = addDataToQueue(std::move(data), &onResult, dropped);
 
 			std::cout << fmt::sprintf("[cluster:queue] Duplicated: Added new sync updates (%d) for %s. Last ID: %d\n", localData.dataSize,
-									  nsName, queue_.size() ? queue_.back()->ID() : 0);
+									  nsName, queue_.size() ? (queue_.back()->ID() + queue_.back()->Count()) : -1);
 
 			if (beforeWait) {
 				beforeWait();  // FIXME: Think about better workaround
