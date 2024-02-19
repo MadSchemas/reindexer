@@ -311,10 +311,13 @@ public:
 			using namespace std::string_view_literals;
 			switch (NamespaceImpl::InvalidationType(invalidation_.load(std::memory_order_acquire))) {
 				case InvalidationType::Readonly:
+					std::cout << fmt::sprintf("'%s' is readonly\n", owner_.name_);
 					throw Error(errNamespaceInvalidated, "NS invalidated"sv);
 				case InvalidationType::OverwrittenByUser:
+					std::cout << fmt::sprintf("'%s' is overwritten via rename\n", owner_.name_);
 					throw Error(errNamespaceOverwritten, "NS was overwritten via rename"sv);
 				case InvalidationType::OverwrittenByReplicator:
+					std::cout << fmt::sprintf("'%s' is overwritten via rename (force sync)\n", owner_.name_);
 					throw Error(errWrongReplicationData, "NS was overwritten via rename (force sync)"sv);
 				case InvalidationType::Valid:
 				default:
