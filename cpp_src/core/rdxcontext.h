@@ -53,15 +53,15 @@ void AssertOnCancel(const Context& ctx, std::string_view errMsg = std::string_vi
 	const auto cancel = ctx.CheckCancel();
 	switch (cancel) {
 		case CancelType::Explicit:
-			assertrx_throw(false);
+			assertrx(false);
 			std::abort();
 		case CancelType::Timeout:
-			assertrx_throw(false);
+			assertrx(false);
 			std::abort();
 		case CancelType::None:
 			return;
 	}
-	assertrx_throw(false);
+	assertrx(false);
 	std::abort();
 }
 

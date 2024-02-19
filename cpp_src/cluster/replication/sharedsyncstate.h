@@ -82,15 +82,15 @@ public:
 				cond_.wait(
 					lck,
 					[this, &name, hash]() noexcept {
-						auto res = isInitialSyncDone(name, hash) || terminated_ || next_.role == RaftInfo::Role::Follower;
-						nocase_hash_str h;
-						std::cout << fmt::sprintf("AwaitInitialSync(%s / %d / %d) lambda call: %d, terminated_: %d, next_.role: %d\n", name,
-												  hash, h(name), int(res), int(terminated_), int(next_.role));
-						return res;
+						return isInitialSyncDone(name, hash) || terminated_ || next_.role == RaftInfo::Role::Follower;
+						//nocase_hash_str h;
+						//std::cout << fmt::sprintf("AwaitInitialSync(%s / %d / %d) lambda call: %d, terminated_: %d, next_.role: %d\n", name,
+						//						  hash, h(name), int(res), int(terminated_), int(next_.role));
+						//return res;
 					},
 					ctx);
 			} catch (...) {
-				std::cout << fmt::sprintf("!!!Exception in AwaitInitialSync(%s)\n", name);
+				//std::cout << fmt::sprintf("!!!Exception in AwaitInitialSync(%s)\n", name);
 				throw;
 			}
 			std::cout << fmt::sprintf("Initial sync is done for '%s', TID: %s, hash: %d!\n", name, std::this_thread::get_id(), hash);
@@ -111,10 +111,10 @@ public:
 				cond_.wait(
 					lck,
 					[this]() noexcept {
-						auto res = isInitialSyncDone() || terminated_ || next_.role == RaftInfo::Role::Follower;
-						std::cout << fmt::sprintf("AwaitInitialSync() lambda call: %d, terminated_: %d, next_.role: %d\n", int(res),
-												  int(terminated_), int(next_.role));
-						return res;
+						return isInitialSyncDone() || terminated_ || next_.role == RaftInfo::Role::Follower;
+						//std::cout << fmt::sprintf("AwaitInitialSync() lambda call: %d, terminated_: %d, next_.role: %d\n", int(res),
+						//						  int(terminated_), int(next_.role));
+						//return res;
 					},
 					ctx);
 			} catch (...) {
@@ -158,7 +158,7 @@ public:
 				cond_.wait(
 					lck, [this] { return !isRunning() || next_ == current_; }, ctx);
 			} catch (...) {
-				std::cout << fmt::sprintf("!!!Exception in AwaitRole(allowTransitState=true)\n");
+				//std::cout << fmt::sprintf("!!!Exception in AwaitRole(allowTransitState=true)\n");
 				throw;
 			}
 		} else {
@@ -172,7 +172,7 @@ public:
 					},
 					ctx);
 			} catch (...) {
-				std::cout << fmt::sprintf("!!!Exception in AwaitRole(allowTransitState=false)\n");
+				//std::cout << fmt::sprintf("!!!Exception in AwaitRole(allowTransitState=false)\n");
 				throw;
 			}
 			std::cout << fmt::sprintf("Role transition done! Current role is %s\n", RaftInfo::RoleToStr(current_.role));
