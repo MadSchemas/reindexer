@@ -973,16 +973,16 @@ Error ReindexerImpl::Update(const Query& q, LocalQueryResults& result, const Rdx
 }
 
 Error ReindexerImpl::Upsert(std::string_view nsName, Item& item, const RdxContext& ctx) {
-	std::cout << fmt::sprintf("ReindexerImpl::Upsert(...) into '%s' begin\n", nsName);
+	//std::cout << fmt::sprintf("ReindexerImpl::Upsert(...) into '%s' begin\n", nsName);
 	auto res = APPLY_NS_FUNCTION11(true, Upsert, item);
-	std::cout << fmt::sprintf("ReindexerImpl::Upsert(...) into '%s' done\n", nsName);
+	//std::cout << fmt::sprintf("ReindexerImpl::Upsert(...) into '%s' done\n", nsName);
 	return res;
 }
 
 Error ReindexerImpl::Upsert(std::string_view nsName, Item& item, LocalQueryResults& qr, const RdxContext& ctx) {
-	std::cout << fmt::sprintf("ReindexerImpl::Upsert(qr) into '%s' begin\n", nsName);
+	//std::cout << fmt::sprintf("ReindexerImpl::Upsert(qr) into '%s' begin\n", nsName);
 	auto res = APPLY_NS_FUNCTION22(true, Upsert, item, qr);
-	std::cout << fmt::sprintf("ReindexerImpl::Upsert(qr) into '%s' done\n", nsName);
+	//std::cout << fmt::sprintf("ReindexerImpl::Upsert(qr) into '%s' done\n", nsName);
 	return res;
 }
 
