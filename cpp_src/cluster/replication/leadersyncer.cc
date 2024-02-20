@@ -71,19 +71,23 @@ void LeaderSyncThread::actualizeShardingConfig() {
 	}
 
 	bool updated = false;
+	client::ReindexerConfig clCfg;
+	clCfg.AppName = "leader_sync-sharding_cfg_syncer";
+	clCfg.EnableCompression = false;
+	clCfg.RequestDedicatedThread = true;
+	const Query shardingQ = Query(kConfigNamespace).Where("type", CondEq, "sharding");
 	for (const auto& dsn : cfg_.dsns) {
 		loop_.spawn([&]() noexcept {
 			try {
-				client::CoroReindexer client;
+				client::CoroReindexer client(clCfg);
 				auto err = client.Connect(dsn, loop_, client::ConnectOpts().WithExpectedClusterID(cfg_.clusterId));
 				if (!err.ok()) {
 					logWarn("%s: Actualization sharding config error: %s", dsn, err.what());
 					return;
 				}
 
-				cluster::ShardingConfig nodeConfig;
 				client::CoroQueryResults qr;
-				err = client.Select(Query(kConfigNamespace).Where("type", CondEq, "sharding"), qr);
+				err = client.Select(shardingQ, qr);
 				if (!err.ok()) {
 					logWarn("%s: Actualization sharding config error: %s", dsn, err.what());
 					return;
@@ -97,9 +101,15 @@ void LeaderSyncThread::actualizeShardingConfig() {
 					return;
 				}
 
-				auto item = qr.begin().GetItem();
+				WrSerializer wrser;
+				err = qr.begin().GetJSON(wrser, false);
+				if (!err.ok()) {
+					logWarn("%s: Unable to get sharding config JSON: %s", dsn, err.what());
+					return;
+				}
+				cluster::ShardingConfig nodeConfig;
 				gason::JsonParser parser;
-				err = nodeConfig.FromJSON(parser.Parse(item.GetJSON())["sharding"]);
+				err = nodeConfig.FromJSON(parser.Parse(giftStr(wrser.Slice()))["sharding"]);
 
 				if (!err.ok()) {
 					logWarn("%s: Actualization sharding config error: %s", dsn, err.what());
