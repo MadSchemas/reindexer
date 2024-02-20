@@ -23,7 +23,7 @@ public:
 		// const auto lockWard = _M_context->BeforeLock(_Mutex::mark);
 		if (_M_chk_timeout.count() > 0 && __context.IsCancelable()) {
 			while (!_M_cond_var->wait_for(__lock, _M_chk_timeout, __p)) {
-				AssertOnCancel(__context, "Context was canceled or timed out (condition variable)"sv);
+				ThrowOnCancel(__context, "Context was canceled or timed out (condition variable)"sv);
 			}
 		} else {
 			_M_cond_var->wait(__lock, std::move(__p));

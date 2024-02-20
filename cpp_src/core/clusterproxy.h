@@ -8,7 +8,7 @@
 #include "core/reindexer_impl/reindexerimpl.h"
 #include "tools/clusterproxyloghelper.h"
 
-#include "vendor/spdlog/fmt/fmt.h"
+//#include "vendor/spdlog/fmt/fmt.h"
 
 namespace reindexer {
 
@@ -129,12 +129,12 @@ public:
 		return proxyCall<LocalQueryActionFT, &ReindexerImpl::Update, Error>(ctx, q.NsName(), action, q, qr);
 	}
 	Error Upsert(std::string_view nsName, Item &item, const RdxContext &ctx) {
-		std::cout << fmt::sprintf("ClusterProxy::Upsert(...) into '%s' begin\n", nsName);
+		//std::cout << fmt::sprintf("ClusterProxy::Upsert(...) into '%s' begin\n", nsName);
 		auto action = [this](const RdxContext &ctx, LeaderRefT clientToLeader, std::string_view nsName, Item &item) {
 			return itemFollowerAction<&client::Reindexer::Upsert>(ctx, clientToLeader, nsName, item);
 		};
 		auto res = proxyCall<LocalItemSimpleActionFT, &ReindexerImpl::Upsert, Error>(ctx, nsName, action, nsName, item);
-		std::cout << fmt::sprintf("ClusterProxy::Upsert(...) into '%s' done\n", nsName);
+		//std::cout << fmt::sprintf("ClusterProxy::Upsert(...) into '%s' done\n", nsName);
 		return res;
 	}
 	Error Upsert(std::string_view nsName, Item &item, LocalQueryResults &qr, const RdxContext &ctx) {
@@ -143,7 +143,7 @@ public:
 			return resultItemFollowerAction<&client::Reindexer::Upsert>(ctx, clientToLeader, nsName, item, qr);
 		};
 		auto res = proxyCall<LocalItemQrActionFT, &ReindexerImpl::Upsert, Error>(ctx, nsName, action, nsName, item, qr);
-		std::cout << fmt::sprintf("ClusterProxy::Upsert(qr) into '%s' done\n", nsName);
+		//std::cout << fmt::sprintf("ClusterProxy::Upsert(qr) into '%s' done\n", nsName);
 		return res;
 	}
 	Error Delete(std::string_view nsName, Item &item, const RdxContext &ctx) {

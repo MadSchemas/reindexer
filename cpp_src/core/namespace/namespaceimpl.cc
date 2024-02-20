@@ -1478,7 +1478,7 @@ void NamespaceImpl::doTruncate(UpdatesContainer& pendedRepl, const NsContext& ct
 }
 
 void NamespaceImpl::ModifyItem(Item& item, ItemModifyMode mode, const RdxContext& ctx) {
-	//sauto name = GetName(ctx);
+	//auto name = GetName(ctx);
 	//if (mode == ModeUpsert && !isSystemNamespaceNameFast(name)) {
 	//	std::cout << fmt::sprintf("NamespaceImpl::ModifyItem(...) into %d:'%s' begin\n", wal_.GetServer(), name);
 	//}
@@ -1488,9 +1488,9 @@ void NamespaceImpl::ModifyItem(Item& item, ItemModifyMode mode, const RdxContext
 	CounterGuardAIR32 cg(cancelCommitCnt_);
 	auto wlck = dataWLock(ctx);
 
-	if (mode == ModeUpsert && !isSystemNamespaceNameFast(name_)) {
-		std::cout << fmt::sprintf("NamespaceImpl::ModifyItem(...) into %d:'%s' locked\n", wal_.GetServer(), name_);
-	}
+	//if (mode == ModeUpsert && !isSystemNamespaceNameFast(name)) {
+	//	std::cout << fmt::sprintf("NamespaceImpl::ModifyItem(...) into %d:'%s' locked\n", wal_.GetServer(), name);
+	//}
 	cg.Reset();
 	calc.LockHit();
 	if (mode == ModeDelete && rx_unlikely(item.PkFields() != pkFields())) {
@@ -1504,9 +1504,9 @@ void NamespaceImpl::ModifyItem(Item& item, ItemModifyMode mode, const RdxContext
 	//}
 
 	replicate(std::move(pendedRepl), std::move(wlck), true, nullptr, ctx);
-	if (mode == ModeUpsert && !isSystemNamespaceNameFast(name_)) {
-		std::cout << fmt::sprintf("NamespaceImpl::ModifyItem(...) into %d:'%s' end\n", wal_.GetServer(), name_);
-	}
+	//if (mode == ModeUpsert && !isSystemNamespaceNameFast(name)) {
+	//	std::cout << fmt::sprintf("NamespaceImpl::ModifyItem(...) into %d:'%s' end\n", wal_.GetServer(), name);
+	//}
 }
 
 void NamespaceImpl::Truncate(const RdxContext& ctx) {
@@ -1825,13 +1825,13 @@ void NamespaceImpl::modifyItem(Item& item, ItemModifyMode mode, UpdatesContainer
 	if (mode == ModeDelete) {
 		deleteItem(item, pendedRepl, ctx);
 	} else {
-		if (mode == ModeUpsert && !isSystemNamespaceNameFast(name_)) {
-			std::cout << fmt::sprintf("NamespaceImpl::modifyItem() into '%s' begin\n", name_);
-		}
+		//if (mode == ModeUpsert && !isSystemNamespaceNameFast(name_)) {
+		//	std::cout << fmt::sprintf("NamespaceImpl::modifyItem() into '%s' begin\n", name_);
+		//}
 		doModifyItem(item, mode, pendedRepl, ctx);
-		if (mode == ModeUpsert && !isSystemNamespaceNameFast(name_)) {
-			std::cout << fmt::sprintf("NamespaceImpl::modifyItem() into '%s' done\n", name_);
-		}
+		//if (mode == ModeUpsert && !isSystemNamespaceNameFast(name_)) {
+		//	std::cout << fmt::sprintf("NamespaceImpl::modifyItem() into '%s' done\n", name_);
+		//}
 	}
 }
 

@@ -267,7 +267,7 @@ public:
 			const bool isFollowerNS = owner_.repl_.clusterStatus.role == ClusterizationStatus::Role::SimpleReplica ||
 									  owner_.repl_.clusterStatus.role == ClusterizationStatus::Role::ClusterReplica;
 			bool synchronized = isFollowerNS || !requireSync || clusterizator_.IsInitialSyncDone(owner_.name_);
-			bool awaitingSync = !synchronized;
+			//bool awaitingSync = !synchronized;
 			while (!synchronized) {
 				// This is required in case of rename during sync wait
 				auto name = owner_.name_;
@@ -277,16 +277,16 @@ public:
 				lck.lock();
 				checkInvalidation();
 				synchronized = clusterizator_.IsInitialSyncDone(owner_.name_);
-				std::cout << fmt::sprintf("%d:'%s' is %s syncronized!\n", owner_.wal_.GetServer(), owner_.name_, synchronized ? "" : "not");
+			//	std::cout << fmt::sprintf("%d:'%s' is %s syncronized!\n", owner_.wal_.GetServer(), owner_.name_, synchronized ? "" : "not");
 			}
 
 			if (!skipClusterStatusCheck) {
 				owner_.checkClusterStatus(ctx);	 // throw exception if false
 			}
 
-			if (awaitingSync) {
-				std::cout << fmt::sprintf("%d:'%s' got lock after sync\n", owner_.wal_.GetServer(), owner_.name_);
-			}
+			//if (awaitingSync) {
+			//	std::cout << fmt::sprintf("%d:'%s' got lock after sync\n", owner_.wal_.GetServer(), owner_.name_);
+			//}
 
 			return lck;
 		}
@@ -315,13 +315,13 @@ public:
 			using namespace std::string_view_literals;
 			switch (NamespaceImpl::InvalidationType(invalidation_.load(std::memory_order_acquire))) {
 				case InvalidationType::Readonly:
-					std::cout << fmt::sprintf("'%s' is readonly\n", owner_.name_);
+					//std::cout << fmt::sprintf("'%s' is readonly\n", owner_.name_);
 					throw Error(errNamespaceInvalidated, "NS invalidated"sv);
 				case InvalidationType::OverwrittenByUser:
-					std::cout << fmt::sprintf("'%s' is overwritten via rename\n", owner_.name_);
+					//std::cout << fmt::sprintf("'%s' is overwritten via rename\n", owner_.name_);
 					throw Error(errNamespaceOverwritten, "NS was overwritten via rename"sv);
 				case InvalidationType::OverwrittenByReplicator:
-					std::cout << fmt::sprintf("'%s' is overwritten via rename (force sync)\n", owner_.name_);
+					//std::cout << fmt::sprintf("'%s' is overwritten via rename (force sync)\n", owner_.name_);
 					throw Error(errWrongReplicationData, "NS was overwritten via rename (force sync)"sv);
 				case InvalidationType::Valid:
 				default:
@@ -594,13 +594,13 @@ private:
 				   QueryStatsCalculatorT &&statCalculator, const NsContext &ctx) {
 		if (!repl_.temporary) {
 			assertrx(!ctx.isCopiedNsRequest);
-			// const auto recsSize = recs.size();
-			// const auto name = name_;
-			// const auto invState = int(locker_.InvalidationType().load());
-			// const auto sid = wal_.GetServer();
-			// if (!isSystem()) {
-			// 	std::cout << fmt::sprintf("Namespace::%d:'%s' replicating %d records. Inv state: %d\n", sid, name, recsSize, invState);
-			// }
+			//const auto recsSize = recs.size();
+			//const auto name = name_;
+			//const auto invState = int(locker_.InvalidationType().load());
+			//const auto sid = wal_.GetServer();
+			//if (!isSystem()) {
+			//	std::cout << fmt::sprintf("Namespace::%d:'%s' replicating %d records. Inv state: %d\n", sid, name, recsSize, invState);
+			//}
 			auto err = clusterizator_.Replicate(
 				std::move(recs),
 				[&wlck]() {
@@ -608,10 +608,10 @@ private:
 					wlck.unlock();
 				},
 				ctx.rdxContext);
-			// if (!isSystem()) {
-			// 	std::cout << fmt::sprintf("Namespace::%d:'%s' replication done for %d records. Inv state: %d\n", sid, name, recsSize,
-			// 							  invState);
-			// }
+			//if (!isSystem()) {
+			//	std::cout << fmt::sprintf("Namespace::%d:'%s' replication done for %d records. Inv state: %d\n", sid, name, recsSize,
+			//							  invState);
+			//}
 			if constexpr (std::is_same_v<QueryStatsCalculatorT, std::nullptr_t>) {
 				storage_.TryForceFlush();
 			} else {

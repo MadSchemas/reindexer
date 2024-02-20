@@ -16,7 +16,7 @@ struct IRdxCancelContext {
 	virtual CancelType GetCancelType() const noexcept = 0;
 	virtual bool IsCancelable() const noexcept = 0;
 	virtual std::optional<std::chrono::milliseconds> GetRemainingTimeout() const noexcept = 0;
-	virtual std::optional<std::chrono::milliseconds> GetInitialTimeout() const noexcept = 0;
+	//	virtual std::optional<std::chrono::milliseconds> GetInitialTimeout() const noexcept = 0;
 
 	virtual ~IRdxCancelContext() = default;
 };
@@ -53,15 +53,15 @@ void AssertOnCancel(const Context& ctx, std::string_view errMsg = std::string_vi
 	const auto cancel = ctx.CheckCancel();
 	switch (cancel) {
 		case CancelType::Explicit:
-			assertrx(false);
+			assertrx_throw(false);
 			std::abort();
 		case CancelType::Timeout:
-			assertrx(false);
+			assertrx_throw(false);
 			std::abort();
 		case CancelType::None:
 			return;
 	}
-	assertrx(false);
+	assertrx_throw(false);
 	std::abort();
 }
 
@@ -72,11 +72,11 @@ public:
 
 	RdxDeadlineContext(time_point deadline = time_point(), const IRdxCancelContext* parent = nullptr) noexcept
 		: deadline_(deadline),
-		  initialTimeout_(deadline == time_point() ? std::chrono::milliseconds(0)
-												   : std::chrono::duration_cast<std::chrono::milliseconds>(deadline - ClockT::now())),
+		  // initialTimeout_(deadline == time_point() ? std::chrono::milliseconds(0)
+		  //										   : std::chrono::duration_cast<std::chrono::milliseconds>(deadline - ClockT::now())),
 		  parent_(parent) {}
 	RdxDeadlineContext(std::chrono::milliseconds timeout, const IRdxCancelContext* parent = nullptr) noexcept
-		: deadline_((timeout.count() > 0) ? (ClockT::now() + timeout) : time_point()), initialTimeout_(timeout), parent_(parent) {}
+		: deadline_((timeout.count() > 0) ? (ClockT::now() + timeout) : time_point()), /* initialTimeout_(timeout), */ parent_(parent) {}
 
 	CancelType GetCancelType() const noexcept override final {
 		if ((deadline_.time_since_epoch().count() > 0) &&
@@ -109,23 +109,23 @@ public:
 		}
 		return ret;
 	}
-	std::optional<std::chrono::milliseconds> GetInitialTimeout() const noexcept override {
-		std::optional<std::chrono::milliseconds> ret;
-		if (parent_) {
-			ret = parent_->GetRemainingTimeout();
-			if (ret.has_value()) {
-				return ret;
-			}
-		}
-		if (initialTimeout_.count() > 0) {
-			ret.emplace(initialTimeout_);
-		}
-		return ret;
-	}
+	// std::optional<std::chrono::milliseconds> GetInitialTimeout() const noexcept override {
+	//	std::optional<std::chrono::milliseconds> ret;
+	//	if (parent_) {
+	//		ret = parent_->GetRemainingTimeout();
+	//		if (ret.has_value()) {
+	//			return ret;
+	//		}
+	//	}
+	//	if (initialTimeout_.count() > 0) {
+	//		ret.emplace(initialTimeout_);
+	//	}
+	//	return ret;
+	// }
 
 private:
 	time_point deadline_;
-	std::chrono::milliseconds initialTimeout_;
+	// std::chrono::milliseconds initialTimeout_;
 	const IRdxCancelContext* parent_;
 };
 
@@ -219,12 +219,12 @@ public:
 		}
 		return std::nullopt;
 	}
-	std::optional<std::chrono::milliseconds> GetInitialTimeout() const noexcept {
-		if (cancelCtx_) {
-			return cancelCtx_->GetInitialTimeout();
-		}
-		return std::nullopt;
-	}
+	// std::optional<std::chrono::milliseconds> GetInitialTimeout() const noexcept {
+	//	if (cancelCtx_) {
+	//		return cancelCtx_->GetInitialTimeout();
+	//	}
+	//	return std::nullopt;
+	// }
 
 private:
 	union {

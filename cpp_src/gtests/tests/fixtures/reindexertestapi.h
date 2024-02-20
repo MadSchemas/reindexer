@@ -13,8 +13,8 @@
 #include "tools/stringstools.h"
 #include "vendor/utf8cpp/utf8.h"
 
-#include <iostream>
-#include "vendor/spdlog/fmt/fmt.h"
+//#include <iostream>
+//#include "vendor/spdlog/fmt/fmt.h"
 
 struct IndexDeclaration {
 	std::string_view indexName;
@@ -80,9 +80,9 @@ public:
 	reindexer::Error Commit(std::string_view ns) { return reindexer->Commit(ns); }
 	void Upsert(std::string_view ns, ItemType &item) {
 		assertrx(!!item);
-		std::cout << fmt::sprintf("Upsert to '%s' begin\n", ns);
+		//std::cout << fmt::sprintf("Upsert to '%s' begin\n", ns);
 		auto err = reindexer->WithTimeout(kBasicTimeout).Upsert(ns, item);
-		std::cout << fmt::sprintf("Upsert to '%s' end with result: %s\n", ns, err.ok() ? "OK" : err.what());
+		//std::cout << fmt::sprintf("Upsert to '%s' end with result: %s\n", ns, err.ok() ? "OK" : err.what());
 		ASSERT_TRUE(err.ok()) << err.what();
 		ASSERT_TRUE(item.Status().ok()) << item.Status().what();
 	}

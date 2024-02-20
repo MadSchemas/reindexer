@@ -13,8 +13,8 @@
 #include "tools/errors.h"
 #include "tools/stringstools.h"
 
-#include <iostream>
-#include "vendor/spdlog/fmt/fmt.h"
+//#include <iostream>
+//#include "vendor/spdlog/fmt/fmt.h"
 
 namespace reindexer {
 namespace cluster {
@@ -294,14 +294,14 @@ public:
 				lck.lock();
 			}
 			static RdxContext dummyCtx_;
-			try {
+			//try {
 				condResultReady_.wait(
 					lck, [&localData] { return localData.executedCnt == localData.dataSize; },
 					dummyCtx_);	 // Don't pass cancel context here, because data are already on the leader and we have to handle them
-			} catch (...) {
-				std::cout << "!!!Exception in PushAndWait\n";
-				throw;
-			}
+			//} catch (...) {
+			//	std::cout << "!!!Exception in PushAndWait\n";
+			//	throw;
+			//}
 
 			return std::make_pair(std::move(localData.err), true);
 		} catch (...) {
