@@ -13,9 +13,6 @@
 #include "tools/errors.h"
 #include "tools/stringstools.h"
 
-//#include <iostream>
-//#include "vendor/spdlog/fmt/fmt.h"
-
 namespace reindexer {
 namespace cluster {
 
@@ -274,16 +271,9 @@ public:
 			return std::make_pair(invalidationErr_, false);
 		}
 		try {
-			//auto nsName = data[0].GetNsName();
 			logTraceW([&] { rtfmt("Push new sync updates (%d) for %s", localData.dataSize, data[0].GetNsName()); });
 
-			//std::cout << fmt::sprintf("[cluster:queue] Duplicated: Pushing new sync updates (%d) for %s. Last ID: %d\n", localData.dataSize,
-			//						  nsName, queue_.size() ? (queue_.back()->ID() + queue_.back()->Count()) : -1);
-
 			entriesRange = addDataToQueue(std::move(data), &onResult, dropped);
-
-			//std::cout << fmt::sprintf("[cluster:queue] Duplicated: Added new sync updates (%d) for %s. Last ID: %d\n", localData.dataSize,
-			//						  nsName, queue_.size() ? (queue_.back()->ID() + queue_.back()->Count()) : -1);
 
 			if (beforeWait) {
 				beforeWait();  // FIXME: Think about better workaround
@@ -294,15 +284,9 @@ public:
 				lck.lock();
 			}
 			static RdxContext dummyCtx_;
-			//try {
-				condResultReady_.wait(
-					lck, [&localData] { return localData.executedCnt == localData.dataSize; },
-					dummyCtx_);	 // Don't pass cancel context here, because data are already on the leader and we have to handle them
-			//} catch (...) {
-			//	std::cout << "!!!Exception in PushAndWait\n";
-			//	throw;
-			//}
-
+			condResultReady_.wait(
+				lck, [&localData] { return localData.executedCnt == localData.dataSize; },
+				dummyCtx_);	 // Don't pass cancel context here, because data are already on the leader and we have to handle them
 			return std::make_pair(std::move(localData.err), true);
 		} catch (...) {
 			logInfoW([] { return "PushAndWait call has recieved an exception"; });

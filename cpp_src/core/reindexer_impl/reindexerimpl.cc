@@ -930,13 +930,6 @@ Error ReindexerImpl::applyNsFunction(std::string_view nsName, const RdxContext& 
 	return applyNsFunction<needUpdateSys, void(decltype(arg1), decltype(arg2), const RdxContext&), &Namespace::memFn, decltype(arg1), \
 						   decltype(arg2)>(nsName, ctx, arg1, arg2)
 
-#define APPLY_NS_FUNCTION11(needUpdateSys, memFn, arg) \
-	applyNsFunction<needUpdateSys, void(decltype(arg), const RdxContext&), &Namespace::memFn, decltype(arg)>(nsName, ctx, arg)
-
-#define APPLY_NS_FUNCTION22(needUpdateSys, memFn, arg1, arg2)                                                                  \
-	applyNsFunction<needUpdateSys, void(decltype(arg1), decltype(arg2), const RdxContext&), &Namespace::memFn, decltype(arg1), \
-					decltype(arg2)>(nsName, ctx, arg1, arg2)
-
 Error ReindexerImpl::Insert(std::string_view nsName, Item& item, const RdxContext& ctx) { APPLY_NS_FUNCTION1(true, Insert, item); }
 
 Error ReindexerImpl::insertDontUpdateSystemNS(std::string_view nsName, Item& item, const RdxContext& ctx) {
@@ -972,18 +965,10 @@ Error ReindexerImpl::Update(const Query& q, LocalQueryResults& result, const Rdx
 	return errOK;
 }
 
-Error ReindexerImpl::Upsert(std::string_view nsName, Item& item, const RdxContext& ctx) {
-	//std::cout << fmt::sprintf("ReindexerImpl::Upsert(...) into '%s' begin\n", nsName);
-	auto res = APPLY_NS_FUNCTION11(true, Upsert, item);
-	//std::cout << fmt::sprintf("ReindexerImpl::Upsert(...) into '%s' done\n", nsName);
-	return res;
-}
+Error ReindexerImpl::Upsert(std::string_view nsName, Item& item, const RdxContext& ctx) { APPLY_NS_FUNCTION1(true, Upsert, item); }
 
 Error ReindexerImpl::Upsert(std::string_view nsName, Item& item, LocalQueryResults& qr, const RdxContext& ctx) {
-	//std::cout << fmt::sprintf("ReindexerImpl::Upsert(qr) into '%s' begin\n", nsName);
-	auto res = APPLY_NS_FUNCTION22(true, Upsert, item, qr);
-	//std::cout << fmt::sprintf("ReindexerImpl::Upsert(qr) into '%s' done\n", nsName);
-	return res;
+	APPLY_NS_FUNCTION2(true, Upsert, item, qr);
 }
 
 Item ReindexerImpl::NewItem(std::string_view nsName, const RdxContext& rdxCtx) {
