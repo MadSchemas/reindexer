@@ -5,7 +5,7 @@ jobs:
   build:
     strategy:
       matrix:
-        os: [macos-13]
+        os: [macos-latest]
       fail-fast: false
     runs-on: ${{matrix.os}}
     env:
@@ -40,7 +40,7 @@ jobs:
           make -j4
           STRIP=/bin/true cpack
       - name: 'C++ tests'
-        if: ${{ matrix.os == 'macos-13' }}
+        if: ${{ matrix.os == 'macos-latest' }}
         run: |
           echo "Running C++ directly in this job due to Action's problem with artifacts transition for macos-11 and macos-12 runners"
           cd build
@@ -60,7 +60,7 @@ jobs:
   test:
     strategy:
       matrix:
-        os: [macos-13]
+        os: [macos-latest]
         test: ['GO']
       fail-fast: false
     runs-on: ${{matrix.os}}
@@ -72,24 +72,24 @@ jobs:
       TEST: ${{matrix.test}}
     steps:
       - name: Checkout repository
-        if: ${{ matrix.os != 'macos-13' || matrix.test == 'GO' }}
+        if: ${{ matrix.os != 'macos-latest' || matrix.test == 'GO' }}
         uses: actions/checkout@v4
       - name: Installing Go
         uses: actions/setup-go@v5
-        if: ${{ matrix.os == 'macos-13' }}
+        if: ${{ matrix.os == 'macos-latest' }}
         with:
           go-version: '1.22.x'
           check-latest: true
       - name: Download ${{matrix.os}}${{matrix.sanitizer}} Artifacts
-        if: ${{ matrix.os != 'macos-13' || matrix.test == 'GO' }}
+        if: ${{ matrix.os != 'macos-latest' || matrix.test == 'GO' }}
         uses: actions/download-artifact@v4
         with:
           name: ${{matrix.os}}${{matrix.sanitizer}}
       - name: 'Untar Artifacts'
-        if: ${{ matrix.os != 'macos-13' || matrix.test == 'GO' }}
+        if: ${{ matrix.os != 'macos-latest' || matrix.test == 'GO' }}
         run: tar -xvf artifacts.tar
       - name: Prepare Environment
-        if: ${{ matrix.os != 'macos-13' || matrix.test == 'GO' }}
+        if: ${{ matrix.os != 'macos-latest' || matrix.test == 'GO' }}
         env:
           OS: ${{matrix.os}}
         run: |
@@ -97,6 +97,8 @@ jobs:
             sudo ./dependencies.sh
           else
             ./dependencies.sh
+             ls -lah /opt/homebrew/lib/libleveldb.a
+             echo $PATH
           fi
           if [[ $TEST == 'GO' ]]; then
             go mod download
@@ -104,7 +106,7 @@ jobs:
             ./.github/workflows/install_gtest_parallel.sh
           fi
       - name: Tests
-        if: ${{ matrix.os != 'macos-13' || matrix.test == 'GO' }}
+        if: ${{ matrix.os != 'macos-latest' || matrix.test == 'GO' }}
         run: |
           if [[ $TEST == 'GO' ]]; then
             if [[ -z "${{matrix.sanitizer}}" ]]; then
