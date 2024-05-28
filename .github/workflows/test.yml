@@ -74,12 +74,14 @@ jobs:
       - name: Checkout repository
         if: ${{ matrix.os != 'macos-latest' || matrix.test == 'GO' }}
         uses: actions/checkout@v4
-      - name: Installing Go
+      - name: Install Go
         uses: actions/setup-go@v5
         if: ${{ matrix.os == 'macos-latest' }}
         with:
           go-version: '1.22.x'
           check-latest: true
+      - name: Set PATH
+        run: echo "export PATH=\$PATH:/opt/homebrew/lib" >> $GITHUB_ENV
       - name: Download ${{matrix.os}}${{matrix.sanitizer}} Artifacts
         if: ${{ matrix.os != 'macos-latest' || matrix.test == 'GO' }}
         uses: actions/download-artifact@v4
