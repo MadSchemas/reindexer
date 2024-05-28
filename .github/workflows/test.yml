@@ -101,8 +101,9 @@ jobs:
             ./dependencies.sh
             #go env
             #find / -name libleveldb* 2>/dev/null
-            ln -s /opt/homebrew/lib/libsnappy.dylib /usr/local/lib/libsnappy.dylib || true
-            ln -s /opt/homebrew/lib/libleveldb.a /usr/local/lib/libleveldb.a || true
+            #ln -s /opt/homebrew/lib/libsnappy.dylib /usr/local/lib/libsnappy.dylib || true
+            #ln -s /opt/homebrew/lib/libleveldb.a /usr/local/lib/libleveldb.a || true
+           # ln -s /opt/homebrew/lib/libleveldb.dylib /usr/local/lib/libleveldb.dylib || true
           fi
           if [[ $TEST == 'GO' ]]; then
             go mod download
@@ -113,10 +114,10 @@ jobs:
         if: ${{ matrix.os != 'macos-latest' || matrix.test == 'GO' }}
         run: |
           if [[ $TEST == 'GO' ]]; then
-            #export LD_LIBRARY_PATH=\$LD_LIBRARY_PATH:/opt/homebrew/lib
-            #export PATH=\$PATH:/opt/homebrew/lib
-            #echo $LD_LIBRARY_PATH
-            #echo $PATH
+            export LD_LIBRARY_PATH=$LD_LIBRARY_PATH:/opt/homebrew/lib
+            export PATH=$PATH:/opt/homebrew/lib
+            echo $LD_LIBRARY_PATH
+            echo $PATH
             #go env
             if [[ -z "${{matrix.sanitizer}}" ]]; then
               go test -timeout 15m ./test/... -bench . -benchmem -benchtime 100ms -seedcount=50000
