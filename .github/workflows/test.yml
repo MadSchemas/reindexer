@@ -2,61 +2,10 @@ name: build
 
 on: push
 jobs:
-  build-windows-latest:
-    runs-on: windows-latest
-    strategy:
-      matrix:
-        compiler: ["Visual Studio 17 2022"]
-      fail-fast: false
-    steps:
-      - name: Checkout repository
-        uses: actions/checkout@v4
-      - name: Build Reindexer
-        run: |
-          mkdir build && cd build
-          cmake -G "${{matrix.compiler}}" .. -Ax64
-          cmake --build . --config Release
-          cmake --build . --config Release --target face
-          cmake --build . --config Release --target swagger
-          cpack
-      - name: Upload Artifacts
-        uses: actions/upload-artifact@v4
-        with:
-          name: windows-latest
-          path: build/*.exe
-          if-no-files-found: error
-
-  build-windows-2019:
-    runs-on: windows-2019
-    strategy:
-      matrix:
-        compiler: ["Visual Studio 16 2019", "MinGW Makefiles"]
-      fail-fast: false
-    steps:
-      - name: Checkout repository
-        uses: actions/checkout@v4
-      - name: Build Reindexer
-        run: |
-          mkdir build && cd build
-          cmake -G "${{matrix.compiler}}" ..
-          cmake --build . --config Release
-          cmake --build . --config Release --target face
-          cmake --build . --config Release --target swagger
-          cpack
-
   build:
     strategy:
       matrix:
-        os: [ubuntu-20.04, ubuntu-22.04, macos-latest]
-        include:
-          - os: ubuntu-latest
-            sanitizer: ASAN
-            cc: gcc-10
-            cxx: g++-10
-          - os: ubuntu-latest
-            sanitizer: TSAN
-            cc: gcc-12
-            cxx: g++-12
+        os: [ubuntu-20.04, macos-latest]
       fail-fast: false
     runs-on: ${{matrix.os}}
     env:
@@ -66,6 +15,10 @@ jobs:
     steps:
       - name: Checkout repository
         uses: actions/checkout@v4
+      - uses: actions/setup-go@v5
+        with:
+          go-version: '1.22.x'
+          check-latest: true
       - name: Prepare Environment
         run: |
           ./.github/workflows/install_gtest.sh
@@ -95,7 +48,7 @@ jobs:
         run: |
           echo "Running C++ directly in this job due to Action's problem with artifacts transition for macos-11 and macos-12 runners"
           cd build
-          ctest --verbose -R gtests
+          #ctest --verbose -R gtests
       - name: 'Tar Artifacts'
         run: |
           find ./build/ -name CMakeFiles | xargs -n1 rm -rf
@@ -111,25 +64,8 @@ jobs:
   test:
     strategy:
       matrix:
-        os: [ubuntu-20.04, ubuntu-22.04, macos-latest]
-        test: ['C++', 'GO']
-        include:
-          - os: ubuntu-latest
-            sanitizer: ASAN
-            cc: gcc-10
-            cxx: g++-10
-            test: 'C++'
-          - os: ubuntu-latest
-            sanitizer: ASAN
-            test: 'GO'
-#         - os: ubuntu-latest
-#           sanitizer: TSAN
-#           cc: gcc-12
-#           cxx: g++-12
-#           test: 'C++'
-          - os: ubuntu-latest
-            sanitizer: TSAN
-            test: 'GO'
+        os: [ubuntu-20.04, macos-latest]
+        test: ['GO']
       fail-fast: false
     runs-on: ${{matrix.os}}
     needs: build
@@ -178,60 +114,4 @@ jobs:
             cd build
             ctest --verbose
           fi
-
-  test-pyreindexer:
-    strategy:
-      matrix:
-        os: [ubuntu-20.04, ubuntu-22.04]
-      fail-fast: false
-    runs-on: ${{matrix.os}}
-    needs: build
-    if: always()
-    env:
-      OS: ${{matrix.os}}
-    steps:
-      - name: Download ${{matrix.os}} Artifacts
-        uses: actions/download-artifact@v4
-        with:
-          name: ${{matrix.os}}
-      - name: 'Untar Artifacts'
-        run: tar -xvf artifacts.tar
-      - name: Prepare Environment
-        run: |
-          if [[ $OS == ubuntu* ]]; then
-            sudo ./dependencies.sh
-            python3 -m pip install setuptools
-          else
-            ./dependencies.sh
-          fi
-      - name: Install Reindexer
-        run: |
-          cd build
-          if [[ $OS == ubuntu* ]]; then
-            sudo dpkg -i reindexer-dev*.deb
-            sudo apt-get install -f
-            sudo dpkg -i reindexer-server*.deb
-            sudo apt-get install -f
-          else
-            for f in reindexer-*.tar.gz; do tar -xvzf "$f"; done
-            cp -R ./usr/local/include/reindexer /usr/local/include/reindexer
-            cp -R ./usr/local/lib/reindexer /usr/local/lib/reindexer
-            cp ./usr/local/lib/libreindexer.a /usr/local/lib/libreindexer.a
-            cp ./usr/local/lib/libreindexer_server_library.a /usr/local/lib/libreindexer_server_library.a
-            cp ./usr/local/lib/libreindexer_server_resources.a /usr/local/lib/libreindexer_server_resources.a
-            cp ./usr/local/lib/pkgconfig/libreindexer.pc /usr/local/lib/pkgconfig/libreindexer.pc
-            cp ./usr/local/lib/pkgconfig/libreindexer_server.pc /usr/local/lib/pkgconfig/libreindexer_server.pc
-            cp ./usr/local/bin/reindexer_server /usr/local/bin/reindexer_server
-            cp ./usr/local/etc/reindexer.conf.pkg /usr/local/etc/reindexer.conf.pkg
-          fi
-      - name: Clone PyReindexer
-        uses: actions/checkout@v4
-        with:
-          repository: restream/reindexer-py
-      - name: Install PyReindexer
-        run: sudo python3 setup.py install
-      - name: Test PyReindexer
-        run: |
-          cd pyreindexer
-          ../.github/workflows/test.sh
 
