@@ -80,8 +80,8 @@ jobs:
         with:
           go-version: '1.22.x'
           check-latest: true
-      - name: Set PATH
-        run: echo "export PATH=\$PATH:/opt/homebrew/lib" >> $GITHUB_ENV
+      - name: Set LD_LIBRARY_PATH
+        run: echo "export LD_LIBRARY_PATH=\$LD_LIBRARY_PATH:/opt/homebrew/lib" >> $GITHUB_ENV
       - name: Download ${{matrix.os}}${{matrix.sanitizer}} Artifacts
         if: ${{ matrix.os != 'macos-latest' || matrix.test == 'GO' }}
         uses: actions/download-artifact@v4
@@ -100,7 +100,7 @@ jobs:
           else
             ./dependencies.sh
              ls -lah /opt/homebrew/lib/libleveldb.a
-             echo $PATH
+             echo $LD_LIBRARY_PATH
           fi
           if [[ $TEST == 'GO' ]]; then
             go mod download
