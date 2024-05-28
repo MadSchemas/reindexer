@@ -5,7 +5,7 @@ jobs:
   build:
     strategy:
       matrix:
-        os: [macos-13]
+        os: [macos-latest]
       fail-fast: false
     runs-on: ${{matrix.os}}
     env:
@@ -40,7 +40,7 @@ jobs:
           make -j4
           STRIP=/bin/true cpack
       - name: 'C++ tests'
-        if: ${{ matrix.os == 'macos-13' }}
+        if: ${{ matrix.os == 'macos-latest' }}
         run: |
           echo "Running C++ directly in this job due to Action's problem with artifacts transition for macos-11 and macos-12 runners"
           cd build
@@ -60,7 +60,7 @@ jobs:
   test:
     strategy:
       matrix:
-        os: [macos-13]
+        os: [macos-latest]
         test: ['GO']
       fail-fast: false
     runs-on: ${{matrix.os}}
@@ -72,26 +72,26 @@ jobs:
       TEST: ${{matrix.test}}
     steps:
       - name: Checkout repository
-        if: ${{ matrix.os != 'macos-13' || matrix.test == 'GO' }}
+        if: ${{ matrix.os != 'macos-latest' || matrix.test == 'GO' }}
         uses: actions/checkout@v4
       - name: Install Go
         uses: actions/setup-go@v5
-        if: ${{ matrix.os == 'macos-13' }}
+        if: ${{ matrix.os == 'macos-latest' }}
         with:
           go-version: '1.22.x'
           check-latest: true
 #      - name: Set LD_LIBRARY_PATH
 #        run: echo "export LD_LIBRARY_PATH=\$LD_LIBRARY_PATH:/opt/homebrew/lib" >> $GITHUB_ENV
       - name: Download ${{matrix.os}}${{matrix.sanitizer}} Artifacts
-        if: ${{ matrix.os != 'macos-13' || matrix.test == 'GO' }}
+        if: ${{ matrix.os != 'macos-latest' || matrix.test == 'GO' }}
         uses: actions/download-artifact@v4
         with:
           name: ${{matrix.os}}${{matrix.sanitizer}}
       - name: 'Untar Artifacts'
-        if: ${{ matrix.os != 'macos-13' || matrix.test == 'GO' }}
+        if: ${{ matrix.os != 'macos-latest' || matrix.test == 'GO' }}
         run: tar -xvf artifacts.tar
       - name: Prepare Environment
-        if: ${{ matrix.os != 'macos-13' || matrix.test == 'GO' }}
+        if: ${{ matrix.os != 'macos-latest' || matrix.test == 'GO' }}
         env:
           OS: ${{matrix.os}}
         run: |
@@ -99,8 +99,10 @@ jobs:
             sudo ./dependencies.sh
           else
             ./dependencies.sh
-            go env
-             find / -name libleveldb* 2>/dev/null
+            #go env
+            #find / -name libleveldb* 2>/dev/null
+            ln -s /opt/homebrew/lib/libsnappy.dylib /usr/local/lib/libsnappy.dylib || true
+            ln -s /opt/homebrew/lib/libleveldb.a /usr/local/lib/libleveldb.a || true
           fi
           if [[ $TEST == 'GO' ]]; then
             go mod download
@@ -108,14 +110,14 @@ jobs:
             ./.github/workflows/install_gtest_parallel.sh
           fi
       - name: Tests
-        if: ${{ matrix.os != 'macos-13' || matrix.test == 'GO' }}
+        if: ${{ matrix.os != 'macos-latest' || matrix.test == 'GO' }}
         run: |
           if [[ $TEST == 'GO' ]]; then
-            export LD_LIBRARY_PATH=\$LD_LIBRARY_PATH:/opt/homebrew/lib
-            export PATH=\$PATH:/opt/homebrew/lib
-            echo $LD_LIBRARY_PATH
-            echo $PATH
-            go env
+            #export LD_LIBRARY_PATH=\$LD_LIBRARY_PATH:/opt/homebrew/lib
+            #export PATH=\$PATH:/opt/homebrew/lib
+            #echo $LD_LIBRARY_PATH
+            #echo $PATH
+            #go env
             if [[ -z "${{matrix.sanitizer}}" ]]; then
               go test -timeout 15m ./test/... -bench . -benchmem -benchtime 100ms -seedcount=50000
             else
