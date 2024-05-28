@@ -15,10 +15,6 @@ jobs:
     steps:
       - name: Checkout repository
         uses: actions/checkout@v4
-      - uses: actions/setup-go@v5
-        with:
-          go-version: '1.22.x'
-          check-latest: true
       - name: Prepare Environment
         run: |
           ./.github/workflows/install_gtest.sh
@@ -78,6 +74,12 @@ jobs:
       - name: Checkout repository
         if: ${{ matrix.os != 'macos-latest' || matrix.test == 'GO' }}
         uses: actions/checkout@v4
+      - name: Installing Go
+        uses: actions/setup-go@v5
+        if: ${{ matrix.os == 'macos-latest' }}
+        with:
+          go-version: '1.22.x'
+          check-latest: true
       - name: Download ${{matrix.os}}${{matrix.sanitizer}} Artifacts
         if: ${{ matrix.os != 'macos-latest' || matrix.test == 'GO' }}
         uses: actions/download-artifact@v4
