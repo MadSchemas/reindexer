@@ -74,12 +74,12 @@ jobs:
       - name: Checkout repository
         if: ${{ matrix.os != 'macos-13' || matrix.test == 'GO' }}
         uses: actions/checkout@v4
-      #- name: Install Go
-      #  uses: actions/setup-go@v5
-      #  if: ${{ matrix.os == 'macos-13' }}
-      #  with:
-      #    go-version: '1.22.x'
-      #    check-latest: true
+      - name: Install Go
+        uses: actions/setup-go@v5
+        if: ${{ matrix.os == 'macos-13' }}
+        with:
+          go-version: '1.22.x'
+          check-latest: true
       #- name: Set LD_LIBRARY_PATH
       #  run: echo "export LD_LIBRARY_PATH=\$LD_LIBRARY_PATH:/opt/homebrew/lib" >> $GITHUB_ENV
       - name: Download ${{matrix.os}}${{matrix.sanitizer}} Artifacts
